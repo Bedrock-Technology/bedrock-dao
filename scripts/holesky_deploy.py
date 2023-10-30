@@ -22,7 +22,7 @@ def main():
     token_contract = BedrockDAO.deploy(
             {'from': deployer})
 
-    token_proxy =  TransparentUpgradeableProxy.deploy(
+    token_proxy = TransparentUpgradeableProxy.deploy(
             token_contract, deployer, b'',
             {'from': deployer})
     
@@ -36,12 +36,25 @@ def main():
     ve_contract = VotingEscrow.deploy(
             {'from': deployer})
 
-    ve_proxy =  TransparentUpgradeableProxy.deploy(
+    ve_proxy = TransparentUpgradeableProxy.deploy(
             ve_contract, deployer, b'',
             {'from': deployer})
 
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
     transparent_ve.initialize( "voting-escrow BRT", "veBRT", transparent_token, {'from': owner})
+
+    """
+    Deploy VE Rewards contract
+    """
+    ve_rewards_contract = VeRewards.deploy(
+            {'from': deployer})
+
+    ve_rewards_proxy = TransparentUpgradeableProxy.deploy(
+            ve_rewards_contract, deployer, b'',
+            {'from': deployer})
+
+    transparent_ve_rewards = Contract.from_abi("VeRewards", ve_rewards_proxy.address, VeRewards.abi)
+    transparent_ve_rewards.initialize(transparent_ve, transparent_token, {'from': owner})
 
 #     """
 #     Deploy BedrockGovernor contract
