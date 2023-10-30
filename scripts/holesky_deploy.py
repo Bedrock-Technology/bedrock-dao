@@ -6,15 +6,13 @@ from pathlib import Path
 import time
 import pytest
 
-shouldPublishSource = True
 priority_fee("80 gwei")
-
 def main():
     deps = project.load(  Path.home() / ".brownie" / "packages" / config["dependencies"][0])
     TransparentUpgradeableProxy = deps.TransparentUpgradeableProxy
 
     owner = accounts.load('holesky-owner')
-    deployer = accounts.load('holesky-deployer')
+    deployer = accounts.load('holesky-deploy')
 
     print(f'contract owner account: {owner.address}\n')
 
@@ -29,18 +27,18 @@ def main():
             {'from': deployer})
     
     transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
-    transparent_token.initialize(owner, {'from': owner})
+    transparent_token.initialize({'from': owner})
 
 
     """
     Deploy VotingEscrow contract
     """
     ve_contract = VotingEscrow.deploy(
-            {'from': deployer}, publish_source=shouldPublishSource)
+            {'from': deployer})
 
     ve_proxy =  TransparentUpgradeableProxy.deploy(
             ve_contract, deployer, b'',
-            {'from': deployer}, publish_source=shouldPublishSource)
+            {'from': deployer})
 
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
     transparent_ve.initialize( "voting-escrow BRT", "veBRT", transparent_token, {'from': owner})
