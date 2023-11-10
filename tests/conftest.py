@@ -34,11 +34,11 @@ def setup_contracts(owner, deployer):
     Deploy BedrockDAO
     """
     token_contract = BedrockDAO.deploy(
-            {'from': deployer})
+        {'from': deployer})
 
     token_proxy =  TransparentUpgradeableProxy.deploy(
-            token_contract, deployer, b'',
-            {'from': deployer})
+        token_contract, deployer, b'',
+        {'from': deployer})
     
     transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
     transparent_token.initialize({'from': owner})
@@ -47,34 +47,48 @@ def setup_contracts(owner, deployer):
     Deploy VotingEscrow
     """
     ve_contract = VotingEscrow.deploy(
-            {'from': deployer})
+        {'from': deployer})
 
     ve_proxy =  TransparentUpgradeableProxy.deploy(
-            ve_contract, deployer, b'',
-            {'from': deployer})
+        ve_contract, deployer, b'',
+        {'from': deployer})
 
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
     transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_proxy.address, {'from': owner})
 
     """
+    Deploy Gauge Controller
+    """
+
+    gauge_contract = GaugeController.deploy(
+        {'from': deployer})
+    
+    gauge_proxy = TransparentUpgradeableProxy.deploy(
+        gauge_contract, deployer, b'',
+        {'from': deployer})
+    
+    transparent_gauge = Contract.from_abi("GaugeController", gauge_proxy.address, GaugeController.abi)
+    transparent_gauge.initialize(transparent_ve, {'from': owner})
+
+    """
     Deploy BedrockGovernor
     """
     govern_contract = BedrockGovernor.deploy(
-            {'from': deployer})
+        {'from': deployer})
 
     govern_proxy = TransparentUpgradeableProxy.deploy(
-            govern_contract, deployer, b'',
-            {'from': deployer})
+        govern_contract, deployer, b'',
+        {'from': deployer})
 
     timelock = TimeLock.deploy(
-            86400*1,
-            [govern_proxy.address],
-            ["0x0000000000000000000000000000000000000000"],
-            owner,
-            {'from': owner})
+        86400*1,
+        [govern_proxy.address],
+        ["0x0000000000000000000000000000000000000000"],
+        owner,
+        {'from': owner})
 
     transparent_govern = Contract.from_abi("BedrockGovernor", govern_proxy.address, BedrockGovernor.abi)
     transparent_govern.initialize(transparent_ve, timelock, {'from': owner})
     
-    return transparent_token, transparent_ve, transparent_govern
+    return transparent_token, transparent_ve, transparent_gauge, transparent_govern
 
