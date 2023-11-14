@@ -75,6 +75,10 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     uint256 public totalLocked;
     address public assetToken;
 
+    // aggregate vars
+    uint256 public averageLockupTime;
+    uint256 public numLocks;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -534,6 +538,10 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
             );
         }
 
+        if (_action != LockAction.INCREASE_AMOUNT) {
+            averageLockupTime = (averageLockupTime * numLocks + (_unlockTime - block.timestamp)) / (numLocks + 1);
+            numLocks += 1;
+        }
         emit Locked(_addr, _value, newLocked.end, _action, block.timestamp);
     }
 

@@ -284,3 +284,28 @@ def test_balance_of_with_timestamp__happy_path(setup_contracts, owner, floorToWe
     _, _, ts = ve.getLastUserPoint(account)
     assert ve.balanceOf(account, ts) == math.floor(amount/daysInSeconds(4*365)) * (ve.lockEnd(account) - ts)
     
+"""
+Test averageLockupTime
+"""
+def test_average_lockup_time__happy_path(setup_contracts, owner, floorToWeek, daysInSeconds):
+    token, ve, _ = setup_contracts
+    amount = 100e18
+
+    user1 = accounts[2]
+    user2 = accounts[3]
+    user3 = accounts[4]
+    users = [user1, user2, user3]
+
+    curr = chain.time()
+    lockEnd = lambda y: floorToWeek(curr + daysInSeconds(y*365))
+
+    estimatedAverageLockupTime = 0
+    for i in range(len(users)):
+        user = users[i]
+        token.mint(user, amount, {"from": owner})
+        token.approve(ve, amount, {"from": user})
+        ve.createLock(amount, lockEnd(i+1), {"from": user})
+        _, _, ts = ve.getFirstUserPoint(user)
+        estimatedAverageLockupTime += ve.lockEnd(user) - ts
+
+    assert ve.averageLockupTime() == estimatedAverageLockupTime/3
