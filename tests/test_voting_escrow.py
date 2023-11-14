@@ -39,7 +39,7 @@ def test_createLock__revert_path(setup_contracts, owner, floorToWeek, daysInSeco
     token.mint(account, amount, {"from": owner})
     token.approve(ve, amount, {"from": account})
 
-    lockEnd = floorToWeek(chain.time() + daysInSeconds(365) + daysInSeconds(10)) # 1yr lock
+    lockEnd = floorToWeek(chain.time() + 4*daysInSeconds(365) + daysInSeconds(10)) # 4yr lock
     with brownie.reverts():
         ve.createLock(amount, lockEnd, {"from": account}) # lock end is past maxtime
     
@@ -77,7 +77,8 @@ def test_increase_lock_amount__happy_path(setup_contracts, owner, floorToWeek, d
     assert ve.locked(account)[1] == lockEnd # lock end
 
     _, _, ts = ve.getLastUserPoint(account)
-    assert ve.balanceOf(account) == math.floor((amount/2)/daysInSeconds(365)) * (ve.lockEnd(account) - ts)
+    slope = math.floor((amount/2)/(4*daysInSeconds(365)))
+    assert ve.balanceOf(account) == slope * (ve.lockEnd(account) - ts)
      
     chain.sleep(daysInSeconds(60))
 
@@ -89,7 +90,8 @@ def test_increase_lock_amount__happy_path(setup_contracts, owner, floorToWeek, d
     assert ve.locked(account)[1] == lockEnd
 
     _, _, ts = ve.getLastUserPoint(account)
-    assert ve.balanceOf(account) == math.floor((amount)/daysInSeconds(365)) * (ve.lockEnd(account) - ts)
+    slope = math.floor(amount/(4*daysInSeconds(365)))
+    assert ve.balanceOf(account) == slope * (ve.lockEnd(account) - ts)
 
 """
 Test inrease lock amount - revert path
@@ -138,7 +140,8 @@ def test_increase_lock_length__happy_path(setup_contracts, owner, floorToWeek, d
     assert ve.locked(account)[1] == lockEnd # lock end
 
     _, _, ts = ve.getLastUserPoint(account)
-    assert ve.balanceOf(account) == math.floor((amount)/daysInSeconds(365)) * (ve.lockEnd(account) - ts)
+    slope = math.floor((amount)/(4*daysInSeconds(365)))
+    assert ve.balanceOf(account) == slope * (ve.lockEnd(account) - ts)
      
     chain.sleep(daysInSeconds(60))
 
@@ -149,7 +152,8 @@ def test_increase_lock_length__happy_path(setup_contracts, owner, floorToWeek, d
     assert ve.locked(account)[1] == lockEnd2
 
     _, _, ts = ve.getLastUserPoint(account)
-    assert ve.balanceOf(account) == math.floor((amount)/daysInSeconds(365)) * (ve.lockEnd(account) - ts)
+    slope = math.floor((amount)/(4*daysInSeconds(365)))
+    assert ve.balanceOf(account) == slope * (ve.lockEnd(account) - ts)
 
 """
 Test inrease lock length - revert path
@@ -185,7 +189,7 @@ def test_increase_lock_length__revert_path(setup_contracts, owner, floorToWeek, 
         ve.increaseLockLength(floorToWeek(chain.time() + daysInSeconds(1)), {"from": account})
     
     with brownie.reverts("Exceeds maxtime"):
-        ve.increaseLockLength(floorToWeek(chain.time() + daysInSeconds(365 + 7)), {"from": account})
+        ve.increaseLockLength(floorToWeek(chain.time() + daysInSeconds(4*365 + 7)), {"from": account})
 
 """
 Test withdraw - happy path
@@ -260,7 +264,7 @@ def test_balance_of__happy_path(setup_contracts, owner, floorToWeek, daysInSecon
     ve.createLock(amount, lockEnd, {"from": account})
 
     _, _, ts = ve.getLastUserPoint(account)
-    assert ve.balanceOf(account) == math.floor(amount/daysInSeconds(365)) * (ve.lockEnd(account) - ts)
+    assert ve.balanceOf(account) == math.floor(amount/daysInSeconds(4*365)) * (ve.lockEnd(account) - ts)
     
 
 """
@@ -279,5 +283,5 @@ def test_balance_of_with_timestamp__happy_path(setup_contracts, owner, floorToWe
     ve.createLock(amount, lockEnd, {"from": account})
 
     _, _, ts = ve.getLastUserPoint(account)
-    assert ve.balanceOf(account, ts) == math.floor(amount/daysInSeconds(365)) * (ve.lockEnd(account) - ts)
+    assert ve.balanceOf(account, ts) == math.floor(amount/daysInSeconds(4*365)) * (ve.lockEnd(account) - ts)
     
