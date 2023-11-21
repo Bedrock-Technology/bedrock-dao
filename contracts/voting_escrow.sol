@@ -39,7 +39,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     uint256 public constant WEEK = 7 days;
-    uint256 public constant MAXTIME = 365 days;
+    uint256 public constant MAXTIME = 4 * 365 days;
     uint256 public constant MULTIPLIER = 10**18;
 
     enum LockAction {
