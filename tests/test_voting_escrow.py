@@ -2,12 +2,14 @@ import math
 import brownie
 from brownie import accounts, chain
 
+from tests.utils import estimatedVotingPower
+
 """
 Test create lock - happy path
 """
 def test_createLock__happy_path(setup_contracts, owner, floorToWeek, daysInSeconds):
     
-    token, ve, _ = setup_contracts
+    token, ve = setup_contracts[0], setup_contracts[1]
     amount = 100e18
     
     account = accounts[2]
@@ -23,15 +25,14 @@ def test_createLock__happy_path(setup_contracts, owner, floorToWeek, daysInSecon
     assert ve.locked(account)[1] == floorToWeek(lockEnd) # lock end
 
     _, _, ts = ve.getLastUserPoint(account)
-    slope = math.floor(amount/(4*daysInSeconds(365)))
-    assert ve.balanceOf(account) ==slope * (ve.lockEnd(account) - ts)
+    assert ve.balanceOf(account) == estimatedVotingPower(amount, ve.lockEnd(account) - ts)
 
 """
 Test create lock - revert path
 """
 def test_createLock__revert_path(setup_contracts, owner, floorToWeek, daysInSeconds):
     
-    token, ve, _ = setup_contracts
+    token, ve = setup_contracts[0], setup_contracts[1]
     amount = 100e18
     
     account = accounts[2]
@@ -59,7 +60,7 @@ Test inrease lock amount - happy path
 """
 def test_increase_lock_amount__happy_path(setup_contracts, owner, floorToWeek, daysInSeconds):
     
-    token, ve, _ = setup_contracts
+    token, ve = setup_contracts[0], setup_contracts[1]
     amount = 100e18
     
     account = accounts[2]
@@ -97,7 +98,7 @@ Test inrease lock amount - revert path
 """
 def test_increase_lock_amount__revert_path(setup_contracts, owner, floorToWeek, daysInSeconds):
     
-    token, ve, _ = setup_contracts
+    token, ve = setup_contracts[0], setup_contracts[1]
     amount = 100e18
     
     account = accounts[2]
@@ -123,7 +124,7 @@ Test increase lock length
 """
 def test_increase_lock_length__happy_path(setup_contracts, owner, floorToWeek, daysInSeconds):
     
-    token, ve, _ = setup_contracts
+    token, ve = setup_contracts[0], setup_contracts[1]
     amount = 100e18
     
     account = accounts[2]
@@ -159,7 +160,7 @@ Test inrease lock length - revert path
 """
 def test_increase_lock_length__revert_path(setup_contracts, owner, floorToWeek, daysInSeconds):
     
-    token, ve, _ = setup_contracts
+    token, ve = setup_contracts[0], setup_contracts[1]
     amount = 100e18
     
     account = accounts[2]
@@ -195,7 +196,7 @@ Test withdraw - happy path
 """
 def test_withdraw__happy_path(setup_contracts, owner, floorToWeek, daysInSeconds):
     
-    token, ve, _ = setup_contracts
+    token, ve = setup_contracts[0], setup_contracts[1]
     amount = 100e18
     
     account = accounts[2]
@@ -222,7 +223,7 @@ Test withdraw - revert path
 """
 def test_withdraw__revert_path(setup_contracts, owner, floorToWeek, daysInSeconds):
     
-    token, ve, _ = setup_contracts
+    token, ve = setup_contracts[0], setup_contracts[1]
     amount = 100e18
     
     account = accounts[2]
@@ -252,7 +253,7 @@ Test balanceOf (current)
 """
 def test_balance_of__happy_path(setup_contracts, owner, floorToWeek, daysInSeconds):
     
-    token, ve, _ = setup_contracts
+    token, ve = setup_contracts[0], setup_contracts[1]
     amount = 100e18
     
     account = accounts[2]
@@ -271,7 +272,7 @@ Test balanceOf (at timestamp)
 """
 def test_balance_of_with_timestamp__happy_path(setup_contracts, owner, floorToWeek, daysInSeconds):
     
-    token, ve, _ = setup_contracts
+    token, ve = setup_contracts[0], setup_contracts[1]
     amount = 100e18
     
     account = accounts[2]
