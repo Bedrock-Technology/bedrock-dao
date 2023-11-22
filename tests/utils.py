@@ -6,5 +6,5 @@ def get_week(n=0):
     return this_week + (n * WEEK)
 
 def estimatedVotingPower(amount, ts):
-    slope = math.floor(amount/(365 * 24 * 60 * 60))
+    slope = math.floor(amount/(4 * 365 * 24 * 60 * 60))
     return slope * ts
