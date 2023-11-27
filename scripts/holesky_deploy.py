@@ -3,8 +3,6 @@ from brownie.convert import EthAddress
 from brownie.network import priority_fee
 from pathlib import Path
 
-import time
-import pytest
 
 priority_fee("80 gwei")
 def main():
