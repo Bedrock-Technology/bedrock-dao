@@ -27,39 +27,12 @@ def main():
     Deploy dummy LP tokens
     """
 
-    lp_token1 = DummyLPToken.deploy({'from': deployer})
-
-    lp_token2 = DummyLPToken.deploy({'from': deployer})
-
-    lp_token3 = DummyLPToken.deploy({'from': deployer})
-
-    lp_token1_proxy = TransparentUpgradeableProxy.deploy(
-        lp_token1, deployer, b'',{'from': deployer})
+    transparent_lp_token1 = deploy_token("Holesky UniETH/rETH LP Token", "HUNIETH-rETH", owner, deployer, TransparentUpgradeableProxy)
     
-    lp_token2_proxy = TransparentUpgradeableProxy.deploy(
-        lp_token2, deployer, b'',{'from': deployer})
-
-    lp_token3_proxy = TransparentUpgradeableProxy.deploy(
-        lp_token3, deployer, b'',{'from': deployer})
-   
-    transparent_lp_token1 = Contract.from_abi(
-        "DummyLPToken", lp_token1_proxy.address, DummyLPToken.abi)
+    transparent_lp_token2 = deploy_token("Holesky UniETH/wstETH LP Token", "HUNIETH-wstETH", owner, deployer, TransparentUpgradeableProxy)
     
-    transparent_lp_token2 = Contract.from_abi(
-        "DummyLPToken", lp_token2_proxy.address, DummyLPToken.abi)
+    transparent_lp_token3 = deploy_token("Holesky UniETH/ETH LP Token", "HUNIETH-ETH", owner, deployer, TransparentUpgradeableProxy)
     
-    transparent_lp_token3 = Contract.from_abi(
-        "DummyLPToken", lp_token3_proxy.address, DummyLPToken.abi)
-    
-    transparent_lp_token1.initialize(
-        "Holesky UniETH/rETH LP Token", "HUNIETH-rETH", {'from': owner})
-    
-    transparent_lp_token2.initialize(
-        "Holesky UniETH/wstETH LP Token", "HUNIETH-wstETH", {'from': owner})
-    
-    transparent_lp_token3.initialize(
-        "Holesky UniETH/ETH LP Token", "HUNIETH-ETH", {'from': owner})
-
     print("LP Token 1:", transparent_lp_token1)
     print("LP Token 2:", transparent_lp_token2)
     print("LP Token 3:", transparent_lp_token3)
@@ -67,33 +40,12 @@ def main():
     """
     Deploy staking contract
     """
-
-    staking_contract1 = LPStaking.deploy({'from': deployer})
-
-    staking_contract2 = LPStaking.deploy({'from': deployer})
-
-    staking_contract3 = LPStaking.deploy({'from': deployer})
     
-    staking_proxy1 =  TransparentUpgradeableProxy.deploy(
-        staking_contract1, deployer, b'',{'from': deployer})
+    transparent_staking1 = deploy_gauge(transparent_lp_token1, transparent_token, owner, deployer, TransparentUpgradeableProxy)
     
-    staking_proxy2 =  TransparentUpgradeableProxy.deploy(
-        staking_contract2, deployer, b'',{'from': deployer})
+    transparent_staking2 = deploy_gauge(transparent_lp_token2, transparent_token, owner, deployer, TransparentUpgradeableProxy)
     
-    staking_proxy3 =  TransparentUpgradeableProxy.deploy(
-        staking_contract3, deployer, b'',{'from': deployer})
-    
-    transparent_staking1 = Contract.from_abi("LPStaking", staking_proxy1.address, LPStaking.abi)
-    
-    transparent_staking2 = Contract.from_abi("LPStaking", staking_proxy2.address, LPStaking.abi)
-    
-    transparent_staking3 = Contract.from_abi("LPStaking", staking_proxy3.address, LPStaking.abi)
-    
-    transparent_staking1.initialize(transparent_lp_token1, transparent_token, {'from': owner})
-    
-    transparent_staking2.initialize(transparent_lp_token2, transparent_token, {'from': owner})
-    
-    transparent_staking3.initialize(transparent_lp_token3, transparent_token, {'from': owner})
+    transparent_staking3 = deploy_gauge(transparent_lp_token3, transparent_token, owner, deployer, TransparentUpgradeableProxy)
 
     print("Gauge 1:", transparent_staking1)
     print("Gauge 2:", transparent_staking2)
@@ -119,3 +71,30 @@ def main():
     transparent_gauge.addGauge(transparent_staking2, 0, 0, {'from':owner})
 
     transparent_gauge.addGauge(transparent_staking3, 0, 0, {'from':owner})
+
+
+def deploy_token(name, symbol, owner, deployer, TransparentUpgradeableProxy):
+    
+    token = DummyLPToken.deploy({'from': deployer})
+
+    token_proxy = TransparentUpgradeableProxy.deploy(
+        token, deployer, b'',{'from': deployer})
+
+    transparent_token = Contract.from_abi(
+        "DummyLPToken", token_proxy.address, DummyLPToken.abi)    
+    
+    transparent_token.initialize(name, symbol, {'from': owner})    
+    return transparent_token
+
+
+def deploy_gauge(lp_token, reward_token, owner, deployer, TransparentUpgradeableProxy):
+    staking_contract = LPStaking.deploy({'from': deployer})
+
+    staking_proxy =  TransparentUpgradeableProxy.deploy(
+        staking_contract, deployer, b'',{'from': deployer})
+    
+    transparent_staking = Contract.from_abi("LPStaking", staking_proxy.address, LPStaking.abi)
+    
+    transparent_staking.initialize(lp_token, reward_token, {'from': owner})
+    return transparent_staking
+    
