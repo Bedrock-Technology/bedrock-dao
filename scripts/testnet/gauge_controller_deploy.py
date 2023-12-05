@@ -18,6 +18,9 @@ def main():
     
     transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
     
+    """
+    Testnet Voting Escrow Contract
+    """
     ve_proxy = TransparentUpgradeableProxy.at(
         "0x19A84Cb4f25b95990F0B25b15694349Ee1cCc282")
     
@@ -27,11 +30,11 @@ def main():
     Deploy dummy LP tokens
     """
 
-    transparent_lp_token1 = deploy_token("Holesky UniETH/rETH LP Token", "HUNIETH-rETH", owner, deployer, TransparentUpgradeableProxy)
+    transparent_lp_token1 = deploy_dummy_token("Holesky UniETH/rETH LP Token", "HUNIETH-rETH", owner, deployer, TransparentUpgradeableProxy)
     
-    transparent_lp_token2 = deploy_token("Holesky UniETH/wstETH LP Token", "HUNIETH-wstETH", owner, deployer, TransparentUpgradeableProxy)
+    transparent_lp_token2 = deploy_dummy_token("Holesky UniETH/wstETH LP Token", "HUNIETH-wstETH", owner, deployer, TransparentUpgradeableProxy)
     
-    transparent_lp_token3 = deploy_token("Holesky UniETH/ETH LP Token", "HUNIETH-ETH", owner, deployer, TransparentUpgradeableProxy)
+    transparent_lp_token3 = deploy_dummy_token("Holesky UniETH/ETH LP Token", "HUNIETH-ETH", owner, deployer, TransparentUpgradeableProxy)
     
     print("LP Token 1:", transparent_lp_token1)
     print("LP Token 2:", transparent_lp_token2)
@@ -73,7 +76,7 @@ def main():
     transparent_gauge.addGauge(transparent_staking3, 0, 0, {'from':owner})
 
 
-def deploy_token(name, symbol, owner, deployer, TransparentUpgradeableProxy):
+def deploy_dummy_token(name, symbol, owner, deployer, TransparentUpgradeableProxy):
     
     token = DummyLPToken.deploy({'from': deployer})
 

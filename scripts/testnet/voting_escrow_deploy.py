@@ -13,20 +13,14 @@ def main():
     deployer = accounts.load('holesky-deploy')
 
     print(f'contract owner account: {owner.address}\n')
-
+    
     """
-    Deploy BedrockDAO contract
+    Testnet BRT Contract
     """
-    token_contract = BedrockDAO.deploy(
-            {'from': deployer})
-
-    token_proxy = TransparentUpgradeableProxy.deploy(
-            token_contract, deployer, b'',
-            {'from': deployer})
+    token_proxy = TransparentUpgradeableProxy.at(
+        "0x91493342f273BCDc28a4f2BE4b0BF7Bd1c334c20")
     
     transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
-    transparent_token.initialize({'from': owner})
-
 
     """
     Deploy VotingEscrow contract
@@ -54,27 +48,7 @@ def main():
     transparent_ve_rewards = Contract.from_abi("VeRewards", ve_rewards_proxy.address, VeRewards.abi)
     transparent_ve_rewards.initialize(transparent_ve, transparent_token, {'from': owner})
 
-#     """
-#     Deploy BedrockGovernor contract
-#     """
-#     govern_contract = BedrockGovernor.deploy(
-#             {'from': deployer}, publish_source=shouldPublishSource)
-
-#     govern_proxy = TransparentUpgradeableProxy.deploy(
-#             govern_contract, deployer, b'',
-#             {'from': deployer}, publish_source=shouldPublishSource)
-
-#     timelock = TimeLock.deploy(
-#             86400*1,
-#             [govern_proxy.address],
-#             ["0x0000000000000000000000000000000000000000"],
-#             owner,
-#             {'from': owner})
-
-#     transparent_govern = Contract.from_abi("BedrockGovernor", govern_proxy.address, BedrockGovernor.abi)
-#     transparent_govern.initialize(transparent_ve, timelock, {'from': owner})
-
     print("TOKEN ADDRESS:", transparent_token)
     print("VE ADDRESS:",transparent_ve) 
-#     print("GOVERN ADDRESS:", transparent_govern)
-#     print("TIMELOCK ADDRESS:", timelock)
+    print("VE REWARDS ADDRESS:",transparent_ve) 
+
