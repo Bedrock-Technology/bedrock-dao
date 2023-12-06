@@ -46,7 +46,7 @@ def test_vote_for_gauge_weight__happy_path(setup_contracts, owner, floorToWeek, 
         ve.createLock(amount,lockEnd, {"from": voter})
     
     _, slope, ts = ve.getLastUserPoint(voter1)
-    assert ve.balanceOf(voter1) == estimatedVotingPower(amount, ve.lockEnd(voter1)-ts)
+    assert ve.balanceOf(voter1, ts) == estimatedVotingPower(amount, ve.lockEnd(voter1)-ts)
     
     tx = gauge.voteForGaugeWeight(lp_gauge1, 5000, {'from': voter1})
     assert "GaugeVoted" in tx.events
