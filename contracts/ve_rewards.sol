@@ -95,21 +95,26 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     /**
      * @dev claim all rewards
      */
-    function claim() external nonReentrant whenNotPaused {
+    function claim(bool restake) external nonReentrant whenNotPaused {
         _updateReward();
 
         // calc profits and update settled week
         (uint256 profits, uint256 settleToWeek) = _calcProfits(msg.sender);
         userLastSettledWeek[msg.sender] = settleToWeek;
-
-        // transfer profits to user
-        IERC20(rewardToken).safeTransfer(msg.sender, profits);
+        
+        if (restake) {
+            IERC20(rewardToken).safeApprove(votingEscrow, profits);
+            IVotingEscrow(votingEscrow).depositFor(msg.sender, uint128(profits));
+        } else {
+            // transfer profits to user
+            IERC20(rewardToken).safeTransfer(msg.sender, profits);
+        }
 
         // track balance decrease
         _balanceDecrease(profits);
 
         // log
-        emit Claimed(msg.sender, profits);
+        emit Claimed(msg.sender, restake, profits);
     }
 
     /**
@@ -212,5 +217,5 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      *
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
-     event Claimed(address account, uint256 amount);
+     event Claimed(address account, bool restake, uint256 amount);
 }

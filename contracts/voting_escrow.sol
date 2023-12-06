@@ -43,6 +43,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     uint256 public constant MULTIPLIER = 10**18;
 
     enum LockAction {
+        DEPOSIT_FOR,
         CREATE_LOCK,
         INCREASE_AMOUNT,
         INCREASE_TIME
@@ -154,6 +155,37 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      *
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
+
+    /**
+     * @notice Deposit and lock tokens for a user
+     * @dev Anyone (even a smart contract) can deposit tokens for someone else, 
+     *      but cannot extend their locktime and deposit for a user that is not 
+     *      locked
+     * @param _addr Address of the user
+     * @param _value Amount of tokens to deposit
+     */
+    function depositFor(address _addr, uint128 _value)
+        external
+        override
+        nonReentrant
+        whenNotPaused
+    {
+        LockedBalance memory existingDeposit = LockedBalance({
+            amount: locked[_addr].amount,
+            end: locked[_addr].end
+        });
+
+        require(_value > 0, "Cannot deposit 0 tokens");
+        require(existingDeposit.amount > 0, "No existing lock");
+
+        require(
+            existingDeposit.end > block.timestamp,
+            "Lock expired. Withdraw"
+        );
+
+        _depositFor(_addr, _value, 0, existingDeposit, LockAction.DEPOSIT_FOR);
+    }
+
      /**
      * @dev Creates a new lock
      * @param _value Total units of StakingToken to lockup
@@ -528,7 +560,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         if (_value != 0) {
             totalLocked += _value;
             IERC20(assetToken).safeTransferFrom(
-                _addr,
+                msg.sender,
                 address(this),
                 _value
             );

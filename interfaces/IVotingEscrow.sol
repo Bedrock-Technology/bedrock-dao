@@ -16,6 +16,14 @@
 pragma solidity ^0.8.9;
 
 interface IVotingEscrow {
+    /// @notice Deposit and lock tokens for a user
+    /// @dev Anyone (even a smart contract) can deposit tokens for someone else, 
+    ///      but cannot extend their locktime and deposit for a user that is not 
+    ///      locked
+    /// @param _addr Address of the user
+    /// @param _value Amount of tokens to deposit
+    function depositFor(address _addr, uint128 _value) external;
+
     /// @notice Creates a new lock
     /// @param _value Total units of token to lock
     /// @param _unlockTime Time at which the lock expires
