@@ -167,9 +167,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
 
     /**
      * @notice Deposit and lock tokens for a user
-     * @dev Anyone (even a smart contract) can deposit tokens for someone else, 
-     *      but cannot extend their locktime and deposit for a user that is not 
-     *      locked
+     * @dev Anyone (even a smart contract) with REWARDS_MANAGER_ROLE can deposit
+     *      tokens for someone else, but cannot extend their locktime and deposit
+     *      for a user that is not locked
      * @param _addr Address of the user
      * @param _value Amount of tokens to deposit
      */
@@ -180,20 +180,16 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         whenNotPaused
         onlyRole(REWARDS_MANAGER_ROLE)
     {
-        LockedBalance memory existingDeposit = LockedBalance({
+        LockedBalance memory locked_ = LockedBalance({
             amount: locked[_addr].amount,
             end: locked[_addr].end
         });
 
-        require(_value > 0, "Cannot deposit 0 tokens");
-        require(existingDeposit.amount > 0, "No existing lock");
+        require(_value > 0, "Must stake non zero amount");
+        require(locked_.amount > 0, "No existing lock found");
+        require(locked_.end > block.timestamp, "Cannot add to expired lock. Withdraw");
 
-        require(
-            existingDeposit.end > block.timestamp,
-            "Lock expired. Withdraw"
-        );
-
-        _depositFor(_addr, _value, 0, existingDeposit, LockAction.DEPOSIT_FOR);
+        _depositFor(_addr, _value, 0, locked_, LockAction.DEPOSIT_FOR);
     }
 
      /**
