@@ -37,12 +37,14 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     using SafeERC20 for IERC20;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant REWARDS_MANAGER_ROLE = keccak256("REWARDS_MANAGER_ROLE");
 
     uint256 public constant WEEK = 7 days;
     uint256 public constant MAXTIME = 4 * 365 days;
     uint256 public constant MULTIPLIER = 10**18;
 
     enum LockAction {
+        DEPOSIT_FOR,
         CREATE_LOCK,
         INCREASE_AMOUNT,
         INCREASE_TIME
@@ -92,6 +94,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
+        _grantRole(REWARDS_MANAGER_ROLE, msg.sender);
 
         // lock init
         Point memory init = Point({
@@ -140,6 +143,13 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     }
 
     /**
+     * @dev assign rewards manager role to rewards contract
+     */
+    function assignRewardsManager(address rewardsContract) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(REWARDS_MANAGER_ROLE, rewardsContract);
+    }
+
+    /**
      * @notice Public function to trigger global checkpoint
      */
     function checkpoint() external {
@@ -154,6 +164,34 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      *
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
+
+    /**
+     * @notice Deposit and lock tokens for a user
+     * @dev Anyone (even a smart contract) with REWARDS_MANAGER_ROLE can deposit
+     *      tokens for someone else, but cannot extend their locktime and deposit
+     *      for a user that is not locked
+     * @param _addr Address of the user
+     * @param _value Amount of tokens to deposit
+     */
+    function depositFor(address _addr, uint128 _value)
+        external
+        override
+        nonReentrant
+        whenNotPaused
+        onlyRole(REWARDS_MANAGER_ROLE)
+    {
+        LockedBalance memory locked_ = LockedBalance({
+            amount: locked[_addr].amount,
+            end: locked[_addr].end
+        });
+
+        require(_value > 0, "Must stake non zero amount");
+        require(locked_.amount > 0, "No existing lock found");
+        require(locked_.end > block.timestamp, "Cannot add to expired lock. Withdraw");
+
+        _depositFor(_addr, _value, 0, locked_, LockAction.DEPOSIT_FOR);
+    }
+
      /**
      * @dev Creates a new lock
      * @param _value Total units of StakingToken to lockup
@@ -528,7 +566,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         if (_value != 0) {
             totalLocked += _value;
             IERC20(assetToken).safeTransferFrom(
-                _addr,
+                msg.sender,
                 address(this),
                 _value
             );

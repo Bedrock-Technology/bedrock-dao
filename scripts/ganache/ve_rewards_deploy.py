@@ -56,6 +56,9 @@ def main():
     transparent_ve_rewards = Contract.from_abi("VeRewards", ve_rewards_proxy.address, VeRewards.abi)
     transparent_ve_rewards.initialize(transparent_ve, transparent_token, {'from': owner})
 
+    # assign REWARDS_MANAGER_ROLE to rewards contract
+    transparent_ve.assignRewardsManager(transparent_ve_rewards, {'from': owner})
+
     print("VE REWARDS ADDRESS:", transparent_ve_rewards)
 
     for voter in voters: 
