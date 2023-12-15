@@ -26,7 +26,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
   * @title Rockx Bribe Adapter
   * @author RockX Team
   */
-contract BribeAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
+contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
 
     address public pendleMarket; // target pendle market which will receive rewards from this contract
@@ -80,6 +80,17 @@ contract BribeAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable,
     function updateReward() external {  _updateReward(); }
 
     /**
+     * @dev resetAllowance()
+     */
+    function resetAllowance() external onlyOwner {
+        uint256 currentAllowance = IERC20(rewardToken).allowance(address(this), bribeManager);
+        if (currentAllowance != 0) {
+            IERC20(rewardToken).safeApprove(bribeManager, 0);
+            emit ResetAllowanceForBribeManager(block.timestamp);
+        }
+    }
+
+    /**
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      *
      *      INTERNALS
@@ -104,8 +115,11 @@ contract BribeAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable,
         require(_pid > 0, "invalid pool ID");
         
         // transfer bribe
-        IERC20(rewardToken).safeApprove(bribeManager, balance);
-        IBribeManager(bribeManager).addBribeERC20(1, _pid, rewardToken, balance);
+        uint256 currentAllowance = IERC20(rewardToken).allowance(address(this), bribeManager);
+        if (currentAllowance < balance) {
+            IERC20(rewardToken).safeApprove(bribeManager, type(uint256).max);
+        }
+        IBribeManager(bribeManager).addBribeERC20(1, _pid, rewardToken, balance);        
         
         emit RewardsDistributed(pendleMarket, _pid, rewardToken, balance);
     }
@@ -119,4 +133,5 @@ contract BribeAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable,
      */
 
     event RewardsDistributed(address pendleMarket, uint256 _pid, address rewardToken, uint256 amount);
+    event ResetAllowanceForBribeManager(uint256 ts);
 }
