@@ -1,5 +1,6 @@
 from brownie import chain
 import math
+
 def get_week(n=0):
     WEEK = 604800
     this_week = (chain.time() // WEEK) * WEEK
