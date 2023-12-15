@@ -41,6 +41,7 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     address public votingEscrow; // the voting escrow contract
     address public rewardToken; // the reward token to distribute to users as rewards
     uint256 public genesisWeek; // the genesis week the contract has deployed
+    uint256 public accountedRewards; // for tracking rewards allocated
 
     /**
      * @dev empty reserved space for future adding of variables
@@ -198,6 +199,9 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
             uint256 week = _getWeek(block.timestamp+WEEK);
             weeklyProfits[week] += profits;
             lastProfitsUpdate = week;
+
+            accountedRewards += profits;
+            emit RewardUpdated(profits);
         }
     }
 
@@ -218,4 +222,5 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
      event Claimed(address account, bool restake, uint256 amount);
+     event RewardUpdated(uint256 amount);
 }
