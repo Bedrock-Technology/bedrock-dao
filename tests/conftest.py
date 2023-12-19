@@ -90,5 +90,27 @@ def setup_contracts(owner, deployer):
     transparent_govern = Contract.from_abi("BedrockGovernor", govern_proxy.address, BedrockGovernor.abi)
     transparent_govern.initialize(transparent_ve, timelock, {'from': owner})
     
-    return transparent_token, transparent_ve, transparent_gauge, transparent_govern
+    """
+    Setup Bribe Manager
+    """
+    bribeManager = Contract.from_explorer("0x3A51CC8fc92cd5bA1d6920a9ee4cF07A77032Bdf")
+    bribeManagerOwner = accounts.at("0xf433c2A2D6FACeCDd9Edd7B8cE9cEaaB96F41866", force=True)
+    
+    testMarket, _, _ = bribeManager.pools(2)
+    bribeManager.addAllowedTokens(transparent_token.address, {'from': bribeManagerOwner})
 
+    print(f'Test Market: {testMarket}')    
+
+    """
+    Deploy Penpie Adapter
+    """
+    penpie_adapter = PenpieAdapter.deploy(
+        {'from': deployer})
+    penpie_adapter_proxy  =  TransparentUpgradeableProxy.deploy(
+        penpie_adapter, deployer, b'',
+        {'from': deployer})
+    
+    transparent_penpie_adapter = Contract.from_abi("PenpieAdapter", penpie_adapter_proxy.address, PenpieAdapter.abi)
+    transparent_penpie_adapter.initialize(testMarket, transparent_token.address, bribeManager, {'from': owner})
+   
+    return transparent_token, transparent_ve, transparent_gauge, transparent_govern, transparent_penpie_adapter, bribeManager
