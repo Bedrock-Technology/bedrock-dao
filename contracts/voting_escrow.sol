@@ -477,6 +477,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function totalSupply(uint256 ts) public view override returns (uint256) {
         uint256 _epoch = _findTimestampEpoch(ts);
+        if (_epoch ==0) return 0;
         Point memory lastPoint = pointHistory[_epoch];
         return _supplyAt(lastPoint, ts);
     }
