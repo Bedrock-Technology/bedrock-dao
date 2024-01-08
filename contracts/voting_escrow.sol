@@ -396,7 +396,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         Point memory lastPoint = userPointHistory[_account][epoch];
         lastPoint.bias =
             lastPoint.bias -
-            (lastPoint.slope * SafeCast.toInt128(int256(block.timestamp - lastPoint.ts)));
+            (lastPoint.slope * SafeCast.toInt128(int256(_ts - lastPoint.ts)));
         if (lastPoint.bias < 0) {
             lastPoint.bias = 0;
         }
