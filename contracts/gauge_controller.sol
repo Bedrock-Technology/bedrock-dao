@@ -706,18 +706,19 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         view
         returns (uint256)
     {
+        t = _getWeek(_time);
         uint256 lastUpdateTime = gaugeData[_gAddr].wtUpdateTime;
 
         // Gauge wt is check-pointed for the time stamp
-        if (_time <= lastUpdateTime) {
-            return gaugePoints[_gAddr][_time].bias;
+        if (t <= lastUpdateTime) {
+            return gaugePoints[_gAddr][t].bias;
         }
 
         // Calculate estimated gauge weight based on lastUpdateTime
         Point memory lastPoint = gaugePoints[_gAddr][lastUpdateTime];
         uint256 delta = lastPoint.slope *
             WEEK *
-            ((_time - lastUpdateTime) / WEEK);
+            ((t - lastUpdateTime) / WEEK);
 
         // all the votes have expired
         if (delta > lastPoint.bias) return 0;
