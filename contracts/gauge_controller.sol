@@ -127,6 +127,8 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(nGaugeTypes < MAX_NUM, "Can't add more gauge types");
+
         uint128 gType = nGaugeTypes;
         typeNames[gType] = _typeName;
         nGaugeTypes = gType + 1;
