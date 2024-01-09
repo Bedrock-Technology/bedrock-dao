@@ -140,6 +140,9 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
             "Invalid reward distribution"
         );
 
+        // schedule next week's transfer
+        nextRewardTime[_gAddr] = _getWeek(block.timestamp + WEEK);
+
         // Relative weights are always calculated based on the current cycle.
         uint256 gaugeRelativeWt = IGaugeController(gaugeController)
             .gaugeRelativeWeightWrite(_gAddr);
@@ -155,9 +158,6 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
         if (_gAddr.isContract()) {
             IStaking(_gAddr).updateReward();
         }
-
-        // schedule next week's transfer
-        nextRewardTime[_gAddr] = _getWeek(block.timestamp + WEEK);
 
         emit RewardsDistributed(_gAddr, rewards);
     }
