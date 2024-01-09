@@ -474,7 +474,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
             Point memory pt = typePoints[_gType][t];
             for (uint8 i = 0; i < 100; i++) {
                 if (t > block.timestamp) {
-                    timeSum[_gType] = t;
                     break;
                 }
                 t += WEEK;
@@ -488,6 +487,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 }
                 typePoints[_gType][t] = pt;
             }
+            timeSum[_gType] = t;
             return pt.bias;
         }
         return 0;
