@@ -653,9 +653,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         uint256 new_dt = _lockEnd - _nextTime;
         uint256 newBias = _newVoteData.slope * new_dt;
 
-        uint256 oldGaugeSlope = gaugePoints[_gAddr][_nextTime].slope;
-        uint256 oldTypeSlope = typePoints[gType][_nextTime].slope;
-
         {
             // restrict scope of below variables (resolves, stack too deep)
             uint256 oldWtBias = _getWeight(_gAddr);
@@ -670,6 +667,9 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 _max(oldSumBias + newBias, oldBias) -
                 oldBias;
         }
+
+        uint256 oldGaugeSlope = gaugePoints[_gAddr][_nextTime].slope;
+        uint256 oldTypeSlope = typePoints[gType][_nextTime].slope;
 
         if (_oldVoteData.end > _nextTime) {
             gaugePoints[_gAddr][_nextTime].slope =
