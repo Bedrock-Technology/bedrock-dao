@@ -543,7 +543,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
             Point memory pt = gaugePoints[_gAddr][t];
             for (uint8 i = 0; i < 100; i++) {
                 if (t > block.timestamp) {
-                    gaugeData[_gAddr].wtUpdateTime = t;
                     break;
                 }
                 t += WEEK;
@@ -557,6 +556,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 }
                 gaugePoints[_gAddr][t] = pt;
             }
+            gaugeData[_gAddr].wtUpdateTime = t;
             return pt.bias;
         }
         return 0;
