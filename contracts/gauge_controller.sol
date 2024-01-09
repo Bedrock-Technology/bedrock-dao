@@ -568,6 +568,8 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @param _weight New type weight
      */
     function _changeTypeWeight(uint128 _gType, uint256 _weight) private {
+        require(nGaugeTypes > 0 && _gType < nGaugeTypes, "Gauge Type hasn't been registered yet");
+        
         uint256 oldWeight = _getTypeWeight(_gType);
         uint256 oldSum = _getSum(_gType);
         uint256 totalWeight = _getTotal();
