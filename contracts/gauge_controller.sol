@@ -451,12 +451,12 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
             uint256 w = typeWtAtTime[_gType][t];
             for (uint8 i = 0; i < 100; i++) {
                 if (t > block.timestamp) {
-                    lastTypeWtTime[_gType] = t;
                     break;
                 }
                 t += WEEK;
                 typeWtAtTime[_gType][t] = w;
             }
+            lastTypeWtTime[_gType] = t;
             return w;
         }
         return 0;
