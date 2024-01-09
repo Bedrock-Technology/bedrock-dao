@@ -52,8 +52,10 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     uint256 public constant MULTIPLIER = 1e18;
     uint256 public constant WEEK = 604800;
     uint256 public constant PREC = 10000;
-    uint256 constant MAX_NUM = 1e9;
+
+    uint256 constant MAX_NUM = 1e3;
     uint256 constant MAX_NUM_GAUGES = 1e4;
+
     // # Cannot change weight votes more often than once in 6 days
     uint256 public constant WEIGHT_VOTE_DELAY = 6 * 86400;
     address public votingEscrow;
