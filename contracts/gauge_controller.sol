@@ -506,8 +506,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         }
 
         // Updating type related data
-        for (uint8 i = 0; i < 100; i++) {
-            if (i == numTypes) break;
+        for (uint8 i = 0; i < numTypes; i++) {
             _getSum(i);
             _getTypeWeight(i);
         }
@@ -516,20 +515,19 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
 
         for (uint256 i = 0; i < 100; i++) {
             if (t > block.timestamp) {
-                timeTotal = t;
                 break;
             }
             t += WEEK;
             pt = 0;
 
-            for (uint128 gType = 0; gType < 100; gType++) {
-                if (gType == numTypes) break;
+            for (uint128 gType = 0; gType < numTypes; gType++) {
                 uint256 typeSum = typePoints[gType][t].bias;
                 uint256 typeWeight = typeWtAtTime[gType][t];
                 pt += typeSum * typeWeight;
             }
             totalWtAtTime[t] = pt;
         }
+        timeTotal = t;
         return pt;
     }
 
