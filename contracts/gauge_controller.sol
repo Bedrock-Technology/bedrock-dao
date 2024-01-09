@@ -242,11 +242,13 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     {
         require(
             _userWeight >= 0 && _userWeight <= PREC,
-            "All voting power used"
+            "Invalid voting power provided"
         );
 
         // Get user's latest veToken stats
         (, int128 slope,) = IVotingEscrow(votingEscrow).getLastUserPoint(msg.sender);
+
+        require(slope > 0, "no voting power available");
 
         uint256 lockEnd = IVotingEscrow(votingEscrow).lockEnd(msg.sender);
 
