@@ -143,6 +143,9 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
         // Relative weights are always calculated based on the current cycle.
         uint256 gaugeRelativeWt = IGaugeController(gaugeController)
             .gaugeRelativeWeightWrite(_gAddr);
+
+        if (gaugeRelativeWt == 0) return;
+         
         uint256 rewards = (globalWeekEmission * gaugeRelativeWt) / MULTIPLIER;
 
         // transfer ERC20 reward token to farm.
