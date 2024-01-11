@@ -14,7 +14,7 @@ def test_addBribeERC20(setup_contracts, owner):
     tx = penpie_adapter.updateReward({"from": owner})
     assert "RewardsDistributed" in tx.events
 
-    bribe = bribeManager.getBribesInPool(epoch, 2, {'from': owner})
+    bribe = bribeManager.getBribesInPool(epoch, 0, {'from': owner})
     assert bribe[0][0] == transparent_token.address
     assert bribe[0][1] == 100e18
     

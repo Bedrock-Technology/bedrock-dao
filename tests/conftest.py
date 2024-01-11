@@ -91,15 +91,26 @@ def setup_contracts(owner, deployer):
     transparent_govern.initialize(transparent_ve, timelock, {'from': owner})
     
     """
+    Deploy Bribe Manager
+    """
+    mock_bribe_manager_contract = BribeManager.deploy(
+        {'from': deployer})
+
+    mock_bribe_manager_proxy = TransparentUpgradeableProxy.deploy(
+        mock_bribe_manager_contract, deployer, b'',
+        {'from': deployer})
+    
+    transparent_mock_bribe_manager = Contract.from_abi("BribeManager", mock_bribe_manager_proxy.address, BribeManager.abi)
+    transparent_mock_bribe_manager.initialize({'from': owner})
+
+    """
     Setup Bribe Manager
     """
-    bribeManager = Contract.from_explorer("0x3A51CC8fc92cd5bA1d6920a9ee4cF07A77032Bdf")
-    bribeManagerOwner = accounts.at("0xf433c2A2D6FACeCDd9Edd7B8cE9cEaaB96F41866", force=True)
-    
-    testMarket, _, _ = bribeManager.pools(2)
-    bribeManager.addAllowedTokens(transparent_token.address, {'from': bribeManagerOwner})
+    test_market = accounts[5]
+    transparent_mock_bribe_manager.newPool(test_market, chain.id, {'from': owner})
+    transparent_mock_bribe_manager.addAllowedTokens(transparent_token.address, {'from': owner})
 
-    print(f'Test Market: {testMarket}')    
+    print(f'Test Market: {test_market}')    
 
     """
     Deploy Penpie Adapter
@@ -111,6 +122,6 @@ def setup_contracts(owner, deployer):
         {'from': deployer})
     
     transparent_penpie_adapter = Contract.from_abi("PenpieAdapter", penpie_adapter_proxy.address, PenpieAdapter.abi)
-    transparent_penpie_adapter.initialize(testMarket, transparent_token.address, bribeManager, {'from': owner})
+    transparent_penpie_adapter.initialize(test_market, transparent_token.address, transparent_mock_bribe_manager, {'from': owner})
    
-    return transparent_token, transparent_ve, transparent_gauge, transparent_govern, transparent_penpie_adapter, bribeManager
+    return transparent_token, transparent_ve, transparent_gauge, transparent_govern, transparent_penpie_adapter, transparent_mock_bribe_manager

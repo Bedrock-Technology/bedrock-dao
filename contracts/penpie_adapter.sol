@@ -111,7 +111,6 @@ contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable
         
         // get pid for the pendle market from bribe manager
         uint256 _pid = IBribeManager(bribeManager).marketToPid(pendleMarket);
-        require(_pid > 0, "invalid pool ID");
         
         // transfer bribe
         uint256 currentAllowance = IERC20(rewardToken).allowance(address(this), bribeManager);
