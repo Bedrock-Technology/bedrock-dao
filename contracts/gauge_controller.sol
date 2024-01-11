@@ -52,8 +52,10 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     uint256 public constant MULTIPLIER = 1e18;
     uint256 public constant WEEK = 604800;
     uint256 public constant PREC = 10000;
-    uint256 constant MAX_NUM = 1e9;
+
+    uint256 constant MAX_NUM = 1e3;
     uint256 constant MAX_NUM_GAUGES = 1e4;
+
     // # Cannot change weight votes more often than once in 6 days
     uint256 public constant WEIGHT_VOTE_DELAY = 6 * 86400;
     address public votingEscrow;
@@ -125,6 +127,8 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(nGaugeTypes < MAX_NUM, "Can't add more gauge types");
+
         uint128 gType = nGaugeTypes;
         typeNames[gType] = _typeName;
         nGaugeTypes = gType + 1;
@@ -238,11 +242,13 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     {
         require(
             _userWeight >= 0 && _userWeight <= PREC,
-            "All voting power used"
+            "Invalid voting power provided"
         );
 
         // Get user's latest veToken stats
         (, int128 slope,) = IVotingEscrow(votingEscrow).getLastUserPoint(msg.sender);
+
+        require(slope > 0, "no voting power available");
 
         uint256 lockEnd = IVotingEscrow(votingEscrow).lockEnd(msg.sender);
 
@@ -445,12 +451,12 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
             uint256 w = typeWtAtTime[_gType][t];
             for (uint8 i = 0; i < 100; i++) {
                 if (t > block.timestamp) {
-                    lastTypeWtTime[_gType] = t;
                     break;
                 }
                 t += WEEK;
                 typeWtAtTime[_gType][t] = w;
             }
+            lastTypeWtTime[_gType] = t;
             return w;
         }
         return 0;
@@ -468,7 +474,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
             Point memory pt = typePoints[_gType][t];
             for (uint8 i = 0; i < 100; i++) {
                 if (t > block.timestamp) {
-                    timeSum[_gType] = t;
                     break;
                 }
                 t += WEEK;
@@ -482,6 +487,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 }
                 typePoints[_gType][t] = pt;
             }
+            timeSum[_gType] = t;
             return pt.bias;
         }
         return 0;
@@ -500,8 +506,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         }
 
         // Updating type related data
-        for (uint8 i = 0; i < 100; i++) {
-            if (i == numTypes) break;
+        for (uint8 i = 0; i < numTypes; i++) {
             _getSum(i);
             _getTypeWeight(i);
         }
@@ -510,20 +515,19 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
 
         for (uint256 i = 0; i < 100; i++) {
             if (t > block.timestamp) {
-                timeTotal = t;
                 break;
             }
             t += WEEK;
             pt = 0;
 
-            for (uint128 gType = 0; gType < 100; gType++) {
-                if (gType == numTypes) break;
+            for (uint128 gType = 0; gType < numTypes; gType++) {
                 uint256 typeSum = typePoints[gType][t].bias;
                 uint256 typeWeight = typeWtAtTime[gType][t];
                 pt += typeSum * typeWeight;
             }
             totalWtAtTime[t] = pt;
         }
+        timeTotal = t;
         return pt;
     }
 
@@ -539,7 +543,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
             Point memory pt = gaugePoints[_gAddr][t];
             for (uint8 i = 0; i < 100; i++) {
                 if (t > block.timestamp) {
-                    gaugeData[_gAddr].wtUpdateTime = t;
                     break;
                 }
                 t += WEEK;
@@ -553,6 +556,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 }
                 gaugePoints[_gAddr][t] = pt;
             }
+            gaugeData[_gAddr].wtUpdateTime = t;
             return pt.bias;
         }
         return 0;
@@ -564,6 +568,8 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @param _weight New type weight
      */
     function _changeTypeWeight(uint128 _gType, uint256 _weight) private {
+        require(nGaugeTypes > 0 && _gType < nGaugeTypes, "Gauge Type hasn't been registered yet");
+        
         uint256 oldWeight = _getTypeWeight(_gType);
         uint256 oldSum = _getSum(_gType);
         uint256 totalWeight = _getTotal();
@@ -647,9 +653,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         uint256 new_dt = _lockEnd - _nextTime;
         uint256 newBias = _newVoteData.slope * new_dt;
 
-        uint256 oldGaugeSlope = gaugePoints[_gAddr][_nextTime].slope;
-        uint256 oldTypeSlope = typePoints[gType][_nextTime].slope;
-
         {
             // restrict scope of below variables (resolves, stack too deep)
             uint256 oldWtBias = _getWeight(_gAddr);
@@ -664,6 +667,9 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 _max(oldSumBias + newBias, oldBias) -
                 oldBias;
         }
+
+        uint256 oldGaugeSlope = gaugePoints[_gAddr][_nextTime].slope;
+        uint256 oldTypeSlope = typePoints[gType][_nextTime].slope;
 
         if (_oldVoteData.end > _nextTime) {
             gaugePoints[_gAddr][_nextTime].slope =
@@ -700,6 +706,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         view
         returns (uint256)
     {
+        _time = _getWeek(_time);
         uint256 lastUpdateTime = gaugeData[_gAddr].wtUpdateTime;
 
         // Gauge wt is check-pointed for the time stamp
