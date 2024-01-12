@@ -101,6 +101,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      * @dev stake assets
      */
     function deposit(uint256 amount) external nonReentrant whenNotPaused {
+        require(amount > 0, "ZERO AMOUNT");
         _updateReward();
 
         UserInfo storage info = userInfo[msg.sender];
@@ -124,6 +125,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      * @dev havest rewards
      */
     function havest(uint256 amount) external nonReentrant whenNotPaused {
+        require(amount > 0, "ZERO AMOUNT");
         _updateReward();
 
         UserInfo storage info = userInfo[msg.sender];
