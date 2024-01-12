@@ -100,6 +100,9 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
 
         // calc profits and update settled week
         (uint256 profits, uint256 settleToWeek) = _calcProfits(msg.sender);
+
+        if (profits == 0) return;
+
         userLastSettledWeek[msg.sender] = settleToWeek;
         
         if (restake) {
