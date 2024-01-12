@@ -72,6 +72,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     function initialize(address _lpToken, address _rewardToken) initializer public {
         __Pausable_init();
         __Ownable_init();
+        __ReentrancyGuard_init();
 
         require(_lpToken != address(0x0), "_lpToken nil");
         require(_rewardToken != address(0x0), "_rewardToken nil");
