@@ -16,7 +16,6 @@ pragma solidity ^0.8.9;
 
 import "interfaces/IStaking.sol";
 import "interfaces/IVotingEscrow.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -29,7 +28,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
   */
 contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
-    using SafeMath for uint;
 
     uint256 public constant WEEK = 604800;
     uint256 public constant MAXWEEKS = 50; // max number of weeks a user can claim rewards in a single transaction
@@ -66,8 +64,9 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     ) initializer public {
         __Pausable_init();
         __Ownable_init();
+        __ReentrancyGuard_init();
 
-        require(_votingEscrow != address(0x0), "_lpToken nil");
+        require(_votingEscrow != address(0x0), "_votingEscrow nil");
         require(_rewardToken != address(0x0), "_rewardToken nil");
 
         votingEscrow = _votingEscrow;
@@ -101,6 +100,9 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
 
         // calc profits and update settled week
         (uint256 profits, uint256 settleToWeek) = _calcProfits(msg.sender);
+
+        if (profits == 0) return;
+
         userLastSettledWeek[msg.sender] = settleToWeek;
         
         if (restake) {
