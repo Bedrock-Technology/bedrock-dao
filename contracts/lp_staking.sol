@@ -184,7 +184,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
      function getPendingReward(address claimaddr) external view returns (uint256) {
-        UserInfo storage info = userInfo[claimaddr];
+        UserInfo memory info = userInfo[claimaddr];
         if (totalShares == 0) {
             return info.rewardBalance;
         }
