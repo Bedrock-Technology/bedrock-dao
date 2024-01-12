@@ -122,9 +122,9 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     }
 
     /**
-     * @dev havest rewards
+     * @dev Harvest rewards
      */
-    function havest(uint256 amount) external nonReentrant whenNotPaused {
+    function Harvest(uint256 amount) external nonReentrant whenNotPaused {
         require(amount > 0, "ZERO AMOUNT");
         _updateReward();
 
@@ -143,7 +143,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
         IERC20(rewardToken).safeTransfer(msg.sender, amount);
 
         // log
-        emit Havest(msg.sender, amount);
+        emit Harvest(msg.sender, amount);
     }
 
     /**
@@ -266,5 +266,5 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      */
      event Deposit(address account, uint256 amount);
      event Withdraw(address account, uint256 amount);
-     event Havest(address account, uint256 amount);
+     event Harvest(address account, uint256 amount);
 }
