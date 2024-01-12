@@ -122,9 +122,9 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     }
 
     /**
-     * @dev Harvest rewards
+     * @dev harvest rewards
      */
-    function Harvest(uint256 amount) external nonReentrant whenNotPaused {
+    function harvest(uint256 amount) external nonReentrant whenNotPaused {
         require(amount > 0, "ZERO AMOUNT");
         _updateReward();
 
