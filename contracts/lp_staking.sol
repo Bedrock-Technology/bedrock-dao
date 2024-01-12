@@ -150,6 +150,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      * @dev withdraw the staked assets
      */
     function withdraw(uint256 amount) external nonReentrant {
+        require(amount > 0, "ZERO AMOUNT");
         _updateReward();
 
         UserInfo storage info = userInfo[msg.sender];
