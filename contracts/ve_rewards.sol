@@ -64,6 +64,7 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     ) initializer public {
         __Pausable_init();
         __Ownable_init();
+        __ReentrancyGuard_init();
 
         require(_votingEscrow != address(0x0), "_lpToken nil");
         require(_rewardToken != address(0x0), "_rewardToken nil");
