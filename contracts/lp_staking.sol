@@ -228,6 +228,8 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
             unrealizedProfits += rewards;
             unrealizedProfitsUpdateTime = block.timestamp;
             profitsRealizingTime = _getWeek(block.timestamp + WEEK);
+
+            emit RewardUpdated(rewards)
         }
     }
 
@@ -268,4 +270,5 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      event Deposit(address account, uint256 amount);
      event Withdraw(address account, uint256 amount);
      event Harvest(address account, uint256 amount);
+     event RewardUpdated(uint256 amount);
 }
