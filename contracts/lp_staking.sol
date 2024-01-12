@@ -15,7 +15,6 @@
 pragma solidity ^0.8.9;
 
 import "interfaces/IStaking.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -28,7 +27,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
   */
 contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
-    using SafeMath for uint;
 
     uint256 private constant MULTIPLIER = 1e18;
     uint256 public constant WEEK = 604800;
@@ -74,6 +72,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     function initialize(address _lpToken, address _rewardToken) initializer public {
         __Pausable_init();
         __Ownable_init();
+        __ReentrancyGuard_init();
 
         require(_lpToken != address(0x0), "_lpToken nil");
         require(_rewardToken != address(0x0), "_rewardToken nil");
@@ -102,6 +101,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      * @dev stake assets
      */
     function deposit(uint256 amount) external nonReentrant whenNotPaused {
+        require(amount > 0, "ZERO AMOUNT");
         _updateReward();
 
         UserInfo storage info = userInfo[msg.sender];
@@ -122,9 +122,10 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     }
 
     /**
-     * @dev havest rewards
+     * @dev harvest rewards
      */
-    function havest(uint256 amount) external nonReentrant whenNotPaused {
+    function harvest(uint256 amount) external nonReentrant whenNotPaused {
+        require(amount > 0, "ZERO AMOUNT");
         _updateReward();
 
         UserInfo storage info = userInfo[msg.sender];
@@ -142,13 +143,14 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
         IERC20(rewardToken).safeTransfer(msg.sender, amount);
 
         // log
-        emit Havest(msg.sender, amount, 0);
+        emit Harvest(msg.sender, amount);
     }
 
     /**
      * @dev withdraw the staked assets
      */
     function withdraw(uint256 amount) external nonReentrant {
+        require(amount > 0, "ZERO AMOUNT");
         _updateReward();
 
         UserInfo storage info = userInfo[msg.sender];
@@ -182,7 +184,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
      function getPendingReward(address claimaddr) external view returns (uint256) {
-        UserInfo storage info = userInfo[claimaddr];
+        UserInfo memory info = userInfo[claimaddr];
         if (totalShares == 0) {
             return info.rewardBalance;
         }
@@ -226,6 +228,8 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
             unrealizedProfits += rewards;
             unrealizedProfitsUpdateTime = block.timestamp;
             profitsRealizingTime = _getWeek(block.timestamp + WEEK);
+
+            emit RewardUpdated(rewards)
         }
     }
 
@@ -265,5 +269,6 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      */
      event Deposit(address account, uint256 amount);
      event Withdraw(address account, uint256 amount);
-     event Havest(address account, uint256 amount, uint256 duration);
+     event Harvest(address account, uint256 amount);
+     event RewardUpdated(uint256 amount);
 }
