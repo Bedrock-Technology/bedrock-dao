@@ -143,7 +143,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
         IERC20(rewardToken).safeTransfer(msg.sender, amount);
 
         // log
-        emit Havest(msg.sender, amount, 0);
+        emit Havest(msg.sender, amount);
     }
 
     /**
@@ -266,5 +266,5 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
      */
      event Deposit(address account, uint256 amount);
      event Withdraw(address account, uint256 amount);
-     event Havest(address account, uint256 amount, uint256 duration);
+     event Havest(address account, uint256 amount);
 }
