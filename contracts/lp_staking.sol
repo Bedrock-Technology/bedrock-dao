@@ -229,7 +229,7 @@ contract LPStaking is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
             unrealizedProfitsUpdateTime = block.timestamp;
             profitsRealizingTime = _getWeek(block.timestamp + WEEK);
 
-            emit RewardUpdated(rewards)
+            emit RewardUpdated(rewards);
         }
     }
 
