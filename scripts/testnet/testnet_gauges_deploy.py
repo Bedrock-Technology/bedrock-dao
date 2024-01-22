@@ -3,19 +3,18 @@ from brownie.network import priority_fee
 from pathlib import Path
 
 # Commands to run this script:
-# holesky:brownie run scripts/testnet/penpie_gauge_deploy.py main holesky-owner holesky-deployer holesky TYPE1 1 --network holesky        
-# goerli: brownie run scripts/testnet/penpie_gauge_deploy.py main goerli-owner goerli-deployer goerli TYPE1 1 --network goerli
+# holesky:brownie run scripts/testnet/testnet_gauges_deploy.py main holesky-owner holesky-deployer holesky TYPE1 1 --network holesky        
+# goerli: brownie run scripts/testnet/testnet_gauges_deploy.py main goerli-owner goerli-deployer goerli TYPE1 1 --network goerli
 
 dep_contracts = {
     "holesky": {
         "token": "0x91493342f273BCDc28a4f2BE4b0BF7Bd1c334c20",
-        "ve":    "0x19A84Cb4f25b95990F0B25b15694349Ee1cCc282",
-        "gauge": "0x4A06579Dcb6ec1Db2B09388d1f3418Cd78411c77"
+        "gauge": "0x4A06579Dcb6ec1Db2B09388d1f3418Cd78411c77",
     }, 
     "goerli": {
         "token": "0x07881e8Ac6cAF3C3082227218E94b3D7ffE201fD",
-        "ve":    "0x19Cd39eC64d3AbbcF9A448175400cDDbA97B9f56",
-        "gauge": "0xa64B2dFfA8818E4A931e7B25ABDDB4CeA12777B4"
+        "gauge": "0xa64B2dFfA8818E4A931e7B25ABDDB4CeA12777B4",
+        "bribe_manager": "0x39889AA0e56AB15E17bB4AEeCa8f2809cDC11006",
     }
 }
 
@@ -55,18 +54,16 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     penpie_market2 = accounts.add()
     penpie_market3 = accounts.add()
 
-    """
-    Deploy Bribe Manager
-    """
-    mock_bribe_manager_contract = BribeManager.deploy(
-        {'from': deployer}, publish_source=shouldPublishSource)
+    print("Penpie Market 1:", penpie_market1)
+    print("Penpie Market 2:", penpie_market2)
+    print("Penpie Market 3:", penpie_market3)
 
-    mock_bribe_manager_proxy = TransparentUpgradeableProxy.deploy(
-        mock_bribe_manager_contract, deployer, b'',
-        {'from': deployer}, publish_source=shouldPublishSource)
-    
+    """
+    Testnet mock Bribe Manager
+    """
+
+    mock_bribe_manager_proxy = TransparentUpgradeableProxy.at(dep_contracts[dep_network]["bribe_manager"])    
     transparent_mock_bribe_manager = Contract.from_abi("BribeManager", mock_bribe_manager_proxy.address, BribeManager.abi)
-    transparent_mock_bribe_manager.initialize({'from': owner})
 
     """
     Setup Bribe Manager
@@ -75,10 +72,13 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     transparent_mock_bribe_manager.newPool(penpie_market1, chain.id, {'from': owner})
     transparent_mock_bribe_manager.newPool(penpie_market2, chain.id, {'from': owner})
     transparent_mock_bribe_manager.newPool(penpie_market3, chain.id, {'from': owner})
-    transparent_mock_bribe_manager.addAllowedTokens(transparent_token.address, {'from': owner})
+
+    isAllowed = transparent_mock_bribe_manager.allowedToken(transparent_token, {'from': owner})
+    if not isAllowed:
+        transparent_mock_bribe_manager.addAllowedTokens(transparent_token.address, {'from': owner})
     
     """
-    Deploy staking contract
+    Deploy penpie adapter contracts
     """
     
     transparent_penpie_adapter1 = _deploy_gauge(penpie_market1, transparent_token, transparent_mock_bribe_manager,owner, deployer, TransparentUpgradeableProxy)
@@ -94,8 +94,6 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     """
     Setup Gauges
     """
-    transparent_gauge.changeTypeWeight(0, 0, {'from': owner}) # remove old gauges from the calculations
-    
     transparent_gauge.addType(gType, gTypeWt, {'from':owner})
 
     transparent_gauge.addGauge(transparent_penpie_adapter1, 1, 0, {'from':owner})
