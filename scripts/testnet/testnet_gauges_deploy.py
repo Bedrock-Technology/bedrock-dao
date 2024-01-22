@@ -96,11 +96,11 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     """
     transparent_gauge.addType(gType, gTypeWt, {'from':owner})
 
-    transparent_gauge.addGauge(transparent_penpie_adapter1, 1, 0, {'from':owner})
+    transparent_gauge.addGauge(transparent_penpie_adapter1, gType, 0, {'from':owner})
 
-    transparent_gauge.addGauge(transparent_penpie_adapter2, 1, 0, {'from':owner})
+    transparent_gauge.addGauge(transparent_penpie_adapter2, gType, 0, {'from':owner})
 
-    transparent_gauge.addGauge(transparent_penpie_adapter3, 1, 0, {'from':owner})
+    transparent_gauge.addGauge(transparent_penpie_adapter3, gType, 0, {'from':owner})
 
 def _deploy_gauge(market, reward_token, bribe_manager, owner, deployer, TransparentUpgradeableProxy):
     
