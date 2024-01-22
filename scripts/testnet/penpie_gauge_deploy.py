@@ -19,17 +19,6 @@ dep_contracts = {
     }
 }
 
-dummy_token = {
-    "holesky": {
-        "name": ["Holesky UniETH/rETH LP Token", "Holesky UniETH/wstETH LP Token", "Holesky UniETH/ETH LP Token"],
-        "symbol": ["HUNIETH-rETH", "HUNIETH-wstETH", "HUNIETH-ETH"]
-    },
-    "goerli": {
-        "name": ["Goerli UniETH/rETH LP Token", "Goerli UniETH/wstETH LP Token", "Goerli UniETH/ETH LP Token"],
-        "symbol": ["GOUNIETH-rETH", "GOUNIETH-wstETH", "GOUNIETH-ETH"]
-    }
-}
-
 shouldPublishSource = False
 priority_fee("80 gwei")
 def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesky"):
