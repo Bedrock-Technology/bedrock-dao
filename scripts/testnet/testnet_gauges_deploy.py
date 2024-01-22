@@ -3,8 +3,8 @@ from brownie.network import priority_fee
 from pathlib import Path
 
 # Commands to run this script:
-# holesky:brownie run scripts/testnet/testnet_gauges_deploy.py main holesky-owner holesky-deployer holesky TYPE1 1 --network holesky        
-# goerli: brownie run scripts/testnet/testnet_gauges_deploy.py main goerli-owner goerli-deployer goerli TYPE1 1 --network goerli
+# holesky:brownie run scripts/testnet/testnet_gauges_deploy.py main holesky-owner holesky-deployer holesky TYPE1 1 1 --network holesky
+# goerli: brownie run scripts/testnet/testnet_gauges_deploy.py main goerli-owner goerli-deployer goerli TYPE1 1 1 --network goerli
 
 dep_contracts = {
     "holesky": {
@@ -20,7 +20,7 @@ dep_contracts = {
 
 shouldPublishSource = False
 priority_fee("80 gwei")
-def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesky", gType="TYPE1", gTypeWt=1):
+def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesky", gTypeName="TYPE1", gType=1, gTypeWt=1):
     
     deps = project.load(  Path.home() / ".brownie" / "packages" / config["dependencies"][0])
     TransparentUpgradeableProxy = deps.TransparentUpgradeableProxy
@@ -94,7 +94,7 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     """
     Setup Gauges
     """
-    transparent_gauge.addType(gType, gTypeWt, {'from':owner})
+    transparent_gauge.addType(gTypeName, gTypeWt, {'from':owner})
 
     transparent_gauge.addGauge(transparent_penpie_adapter1, gType, 0, {'from':owner})
 
