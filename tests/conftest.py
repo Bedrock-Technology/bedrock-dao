@@ -69,26 +69,6 @@ def setup_contracts(owner, deployer):
     
     transparent_gauge = Contract.from_abi("GaugeController", gauge_proxy.address, GaugeController.abi)
     transparent_gauge.initialize(transparent_ve, {'from': owner})
-
-    """
-    Deploy BedrockGovernor
-    """
-    govern_contract = BedrockGovernor.deploy(
-        {'from': deployer})
-
-    govern_proxy = TransparentUpgradeableProxy.deploy(
-        govern_contract, deployer, b'',
-        {'from': deployer})
-
-    timelock = TimeLock.deploy(
-        86400*1,
-        [govern_proxy.address],
-        ["0x0000000000000000000000000000000000000000"],
-        owner,
-        {'from': owner})
-
-    transparent_govern = Contract.from_abi("BedrockGovernor", govern_proxy.address, BedrockGovernor.abi)
-    transparent_govern.initialize(transparent_ve, timelock, {'from': owner})
     
     """
     Deploy Bribe Manager
@@ -124,4 +104,4 @@ def setup_contracts(owner, deployer):
     transparent_penpie_adapter = Contract.from_abi("PenpieAdapter", penpie_adapter_proxy.address, PenpieAdapter.abi)
     transparent_penpie_adapter.initialize(test_market, transparent_token.address, transparent_mock_bribe_manager, {'from': owner})
    
-    return transparent_token, transparent_ve, transparent_gauge, transparent_govern, transparent_penpie_adapter, transparent_mock_bribe_manager
+    return transparent_token, transparent_ve, transparent_gauge, transparent_penpie_adapter, transparent_mock_bribe_manager
