@@ -471,6 +471,8 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     function _getSum(uint128 _gType) private returns (uint256) {
         uint256 t = timeSum[_gType];
         if (t > 0) {
+            // TODO-GA15 (Edited on 2024.02.07)
+            uint256 sumW0 = _getBaseWeight(_gType);
             Point memory pt = typePoints[_gType][t];
             for (uint8 i = 0; i < 100; i++) {
                 if (t > block.timestamp) {
@@ -478,11 +480,18 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 }
                 t += WEEK;
                 uint256 dBias = pt.slope * WEEK;
-                if (pt.bias > dBias) {
+                if (pt.bias > dBias && pt.bias - dBias > sumW0) {  // TODO-GA15 (Edited on 2024.02.07)
                     pt.bias -= dBias;
                     pt.slope -= typeSlopeChanges[_gType][t];
                 } else {
-                    pt.bias = 0;
+                    /*
+                        TODO-GA15 (Edited on 2024-02-07):
+                            Assuming the protocol must always account for the base weight of the gauge,
+                            sumW0 should be set as the minimum type point bias.
+                            This ensures the type point bias can be reset to a value consistent with the w0
+                            after changes in changeGaugeWeight().
+                    */
+                    pt.bias = sumW0;  // TODO-GA15 (Edited on 2024.02.07)
                     pt.slope = 0;
                 }
                 typePoints[_gType][t] = pt;
@@ -491,6 +500,24 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
             return pt.bias;
         }
         return 0;
+    }
+
+    // TODO-GA15 (Edited on 2024.02.07)
+    /**
+     *  @notice Calculate the total gauge base weight of the given gauge type
+     *  @param _gType Gauge type id
+     *  @return Total gauge base weight of the given gauge type
+     */
+    function _getBaseWeight(uint128 _gType) private view returns (uint256) {
+        uint256 sumW0 = 0;
+        address[] memory gaugeList = gauges;
+        for (uint16 i = 0; i < gaugeList.length; i++) {
+            address gAddr = gaugeList[i];
+            if (_getGaugeType(gAddr) == _gType) {
+                sumW0 += gaugeData[gAddr].w0;
+            }
+        }
+        return sumW0;
     }
 
     /**
@@ -540,6 +567,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     function _getWeight(address _gAddr) private returns (uint256) {
         uint256 t = gaugeData[_gAddr].wtUpdateTime;
         if (t > 0) {
+            uint256 w0 = gaugeData[_gAddr].w0;  // TODO-GA16 (Edited on 2024.02.07)
             Point memory pt = gaugePoints[_gAddr][t];
             for (uint8 i = 0; i < 100; i++) {
                 if (t > block.timestamp) {
@@ -547,11 +575,17 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 }
                 t += WEEK;
                 uint256 dBias = pt.slope * WEEK;
-                if (pt.bias > dBias) {
+                if (pt.bias > dBias && pt.bias- dBias > w0) { // TODO-GA16 (Edited on 2024.02.07)
                     pt.bias -= dBias;
                     pt.slope -= gaugeSlopeChanges[_gAddr][t];
                 } else {
-                    pt.bias = 0;
+                    /*
+                        TODO-GA16 (Edited on 2024-02-07):
+                            Assuming the protocol must always account for the base weight of the gauge,
+                            w0 should be set as the minimum gauge point bias.
+                            This ensures that the gauge point bias can be reset to w0 after changes in changeGaugeWeight().
+                    */
+                    pt.bias = w0;
                     pt.slope = 0;
                 }
                 gaugePoints[_gAddr][t] = pt;
@@ -597,6 +631,35 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         uint256 oldSum = _getSum(gType);
         uint256 totalWeight = _getTotal();
         uint256 nextTime = _getWeek(block.timestamp + WEEK);
+
+        /*
+        TODO-GA12: Gauge weight typically consists of two components:
+            the base weight and the users' voting weight.
+            If we use 'newSum = oldSum + _weight - oldGaugeWeight',
+            then all gauge weight is replaced by a new base weight value.
+            Should we instead use 'newSum = oldSum + _weight - oldW0'?
+            Then, _changeGaugeWeight() would only alter the base gauge weight,
+            preserving the users' voting weight unchanged.
+        */
+
+        /*
+        TODO-GA12: Further Findings (Edited on 2024.02.07)
+
+            Using 'newSum = oldSum + _weight - oldGaugeWeight' will result in an incorrect sum of relative gauge weights
+            (greater than 1) if there is an existing gauge vote weight before corresponding BRT locks expire.
+
+             Consequently, the total weekly gauge rewards distributed by calling Cashier.distributeRewards() can exceed
+             the globalWeekEmission, or the calls may revert due to "ERC20: insufficient allowance" and
+              "ERC20: transfer amount exceeds balance" for the approved account.
+              Both cases indicate that our protocol is malfunctioning during gauge rewards distribution.
+
+              If the analysis above is confirmed, please reconsider using 'newSum = oldSum + _weight - oldW0' to
+              maintain data consistency between gauge point bias and type point bias, unless we accept the discrepancy
+              in the weekly gauge rewards distribution as described above.
+
+              If both options above are unacceptable, then the function _changeGaugeWeight and the upper caller
+              changeGaugeWeight should be removed.
+        */
 
         gaugePoints[_gAddr][nextTime].bias = oldGaugeWeight + _weight - oldW0;
         gaugeData[_gAddr].wtUpdateTime = nextTime;
