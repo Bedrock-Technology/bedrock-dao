@@ -665,7 +665,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         gaugeData[_gAddr].wtUpdateTime = nextTime;
         gaugeData[_gAddr].w0 = _weight;
 
-        uint256 newSum = oldSum + _weight - oldGaugeWeight;
+        uint256 newSum = oldSum + _weight - oldW0;
         typePoints[gType][nextTime].bias = newSum;
         timeSum[gType] = nextTime;
 
