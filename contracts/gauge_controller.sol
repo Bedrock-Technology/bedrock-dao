@@ -129,6 +129,9 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     {
         require(nGaugeTypes < MAX_NUM, "Can't add more gauge types");
 
+        bytes memory typeNameBytes = bytes(_typeName);
+        require(typeNameBytes.length > 0, "Empty type name");
+
         uint128 gType = nGaugeTypes;
         typeNames[gType] = _typeName;
         nGaugeTypes = gType + 1;
