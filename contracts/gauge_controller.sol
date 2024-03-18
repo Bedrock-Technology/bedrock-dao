@@ -151,15 +151,15 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     /*
-     *  @notice Change weight of gauge `_gAddr` to `_weight`
-     *  @param _gAddr `GaugeController` contract address
-     *  @param _weight New Gauge weight
+     *  @notice Change the base weight of a gauge
+     *  @param _gAddr Gauge address
+     *  @param _weight New base weight for the gauge
      */
-    function changeGaugeWeight(address _gAddr, uint256 _weight)
+    function changeGaugeBaseWeight(address _gAddr, uint256 _weight)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        _changeGaugeWeight(_gAddr, _weight);
+        _changeGaugeBaseWeight(_gAddr, _weight);
     }
 
     /**
@@ -604,11 +604,11 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     /**
-     *  @notice Change gauge weight
+     *  @notice Change the base weight of a gauge
      *  @param _gAddr Gauge Address
-     *  @param _weight for gauge.
+     *  @param _weight New base weight for the gauge
      */
-    function _changeGaugeWeight(address _gAddr, uint256 _weight) private {
+    function _changeGaugeBaseWeight(address _gAddr, uint256 _weight) private {
         uint128 gType = _getGaugeType(_gAddr);
         uint256 oldGaugeWeight = _getWeight(_gAddr);
         uint256 oldW0 = gaugeData[_gAddr].w0;
