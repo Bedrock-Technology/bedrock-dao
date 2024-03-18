@@ -153,13 +153,13 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     /*
      *  @notice Change the base weight of a gauge
      *  @param _gAddr Gauge address
-     *  @param _weight New base weight for the gauge
+     *  @param _newW0 New base weight for the gauge
      */
-    function changeGaugeBaseWeight(address _gAddr, uint256 _weight)
+    function changeGaugeBaseWeight(address _gAddr, uint256 _newW0)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        _changeGaugeBaseWeight(_gAddr, _weight);
+        _changeGaugeBaseWeight(_gAddr, _newW0);
     }
 
     /**
@@ -606,9 +606,9 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     /**
      *  @notice Change the base weight of a gauge
      *  @param _gAddr Gauge Address
-     *  @param _weight New base weight for the gauge
+     *  @param _newW0 New base weight for the gauge
      */
-    function _changeGaugeBaseWeight(address _gAddr, uint256 _weight) private {
+    function _changeGaugeBaseWeight(address _gAddr, uint256 _newW0) private {
         uint128 gType = _getGaugeType(_gAddr);
         uint256 oldGaugeWeight = _getWeight(_gAddr);
         uint256 oldW0 = gaugeData[_gAddr].w0;
@@ -617,18 +617,19 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         uint256 totalWeight = _getTotal();
         uint256 nextTime = _getWeek(block.timestamp + WEEK);
 
-        gaugePoints[_gAddr][nextTime].bias = oldGaugeWeight + _weight - oldW0;
+        uint256 newGaugeWeight = oldGaugeWeight + _newW0 - oldW0;
+        gaugePoints[_gAddr][nextTime].bias = newGaugeWeight;
         gaugeData[_gAddr].wtUpdateTime = nextTime;
-        gaugeData[_gAddr].w0 = _weight;
+        gaugeData[_gAddr].w0 = _newW0;
 
-        uint256 newSum = oldSum + _weight - oldW0;
+        uint256 newSum = oldSum + _newW0 - oldW0;
         typePoints[gType][nextTime].bias = newSum;
         timeSum[gType] = nextTime;
 
         totalWeight += (newSum - oldSum) * typeWeight;
         totalWtAtTime[nextTime] = totalWeight;
         timeTotal = nextTime;
-        emit GaugeWeightUpdated(_gAddr, block.timestamp, _weight, totalWeight);
+        emit GaugeWeightUpdated(_gAddr, block.timestamp, _newW0, newGaugeWeight, totalWeight);
     }
 
     /**
@@ -810,10 +811,11 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         uint256 weight,
         uint256 totalWeight
     );
-    event GaugeWeightUpdated(
+    event GaugeBaseWeightUpdated(
         address indexed gAddr,
         uint256 time,
-        uint256 weight,
+        uint256 baseWeight,
+        uint256 gaugeWeight,
         uint256 totalWeight
     );
     event GaugeVoted(
