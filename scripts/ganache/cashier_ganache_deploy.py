@@ -25,12 +25,7 @@ def main():
 
     print(f'contract owner account: {owner.address}\n')
 
-    token_contract = BedrockDAO.deploy(
-            {'from': deployer})
-
-    token_proxy =  TransparentUpgradeableProxy.deploy(
-            token_contract, deployer, b'',
-            {'from': deployer})
+    token_contract = BedrockDAO.deploy(owner, owner, owner, {'from': deployer})
 
     ve_contract = VotingEscrow.deploy(
             {'from': deployer})
@@ -53,13 +48,10 @@ def main():
             cashier_contract, deployer, b'',
             {'from': deployer})
 
-    transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
-    transparent_token.initialize({'from': owner})
-
-    print("BRT ADDRESS:", transparent_token)
+    print("BRT ADDRESS:", token_contract)
 
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
-    transparent_ve.initialize( "voting-escrow BRT", "veBRT", transparent_token, {'from': owner})
+    transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_contract, {'from': owner})
 
     print("VE ADDRESS:", transparent_ve)
 
@@ -69,7 +61,7 @@ def main():
     print("GAUGE ADDRESS:", transparent_gauge)
 
     transparent_cashier = Contract.from_abi("Cashier", cashier_proxy.address, Cashier.abi)
-    transparent_cashier.initialize(transparent_token, 100000 * 1e18, transparent_gauge, approved_account, {'from': owner})
+    transparent_cashier.initialize(token_contract, 100000 * 1e18, transparent_gauge, approved_account, {'from': owner})
 
     print("CASHIER ADDRESS:", transparent_cashier)
 
@@ -84,9 +76,9 @@ def main():
 
     for voter in voters: 
         print("minting BRT token to: ", voter)
-        transparent_token.mint(voter, 100 * 1e18, {'from':owner})
+        token_contract.mint(voter, 100 * 1e18, {'from':owner})
         print("Approving BRT token to veBRT")
-        transparent_token.approve(transparent_ve, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':voter})
+        token_contract.approve(transparent_ve, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':voter})
         print("lock 100 * 1e18 value of account", voter, "for 300 days:")
         transparent_ve.createLock(100 * 1e18, chain.time() + 86400 * 300, {'from': voter})
 
@@ -99,9 +91,9 @@ def main():
         print(r'''transparent_gauge.gaugeRelativeWeight(lp_gauge2, get_week(1))''', transparent_gauge.gaugeRelativeWeight(lp_gauge2, get_week(1)))
 
     print("########## CASHIER INIT #############")
-    transparent_token.mint(approved_account, 100000 * 1e18, {'from':owner})
-    print('''transparent_token.balanceOf(approved_account)''',transparent_token.balanceOf(approved_account))
-    transparent_token.approve(transparent_cashier, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':approved_account})
+    token_contract.mint(approved_account, 100000 * 1e18, {'from':owner})
+    print('''token_contract.balanceOf(approved_account)''',token_contract.balanceOf(approved_account))
+    token_contract.approve(transparent_cashier, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':approved_account})
     print('''transparent_cashier.setGlobalEmissionRate(100 * 1e18, {'from':owner}''')
     transparent_cashier.setGlobalEmissionRate(100 * 1e18, {'from':owner}) 
 
@@ -110,6 +102,6 @@ def main():
     print("distributeRewards to gauge 1 & 2")
     transparent_cashier.distributeRewards(lp_gauge1, {'from':owner})
     transparent_cashier.distributeRewards(lp_gauge2, {'from':owner})
-    print('''transparent_token.balanceOf(lp_gauge1)''',transparent_token.balanceOf(lp_gauge1))
-    print('''transparent_token.balanceOf(lp_gauge2)''',transparent_token.balanceOf(lp_gauge2))
+    print('''token_contract.balanceOf(lp_gauge1)''',token_contract.balanceOf(lp_gauge1))
+    print('''token_contract.balanceOf(lp_gauge2)''',token_contract.balanceOf(lp_gauge2))
 
