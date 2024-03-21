@@ -135,6 +135,18 @@ def main():
     assert cashier_transparent.gaugeController() == gauge_controller_transparent.address
     assert cashier_transparent.approvedAccount() == approved_account
 
+    assert penpie_adapter_1_transparent.pendleMarket() == penpie_market_1
+    assert penpie_adapter_1_transparent.rewardToken() == bedrock_dao_transparent.address
+    assert penpie_adapter_1_transparent.bribeManager() == bribe_manager_transparent.address
+
+    assert penpie_adapter_2_transparent.pendleMarket() == penpie_market_2
+    assert penpie_adapter_2_transparent.rewardToken() == bedrock_dao_transparent.address
+    assert penpie_adapter_2_transparent.bribeManager() == bribe_manager_transparent.address
+
+    assert penpie_adapter_3_transparent.pendleMarket() == penpie_market_3
+    assert penpie_adapter_3_transparent.rewardToken() == bedrock_dao_transparent.address
+    assert penpie_adapter_3_transparent.bribeManager() == bribe_manager_transparent.address
+
 
 
 
