@@ -19,7 +19,7 @@ def main():
     global_week_emission = 100 * 1e18
 
     print("Accounts Loading ......")
-    admin = accounts[0]  # admin or owner
+    owner = accounts[0]
     deployer = accounts[1]
 
     approved_account = accounts[2]
@@ -84,36 +84,36 @@ def main():
     penpie_adapter_2_transparent = Contract.from_abi("PenpieAdapter", penpie_adapter_2_proxy.address, PenpieAdapter.abi)
     penpie_adapter_3_transparent = Contract.from_abi("PenpieAdapter", penpie_adapter_3_proxy.address, PenpieAdapter.abi)
 
-    bribe_manager_transparent.initialize({'from': admin})
-    bedrock_dao_transparent.initialize({'from': admin})
+    bribe_manager_transparent.initialize({'from': owner})
+    bedrock_dao_transparent.initialize({'from': owner})
     voting_escrow_transparent.initialize(
         bedrock_dao_transparent.name(),
         bedrock_dao_transparent.symbol(),
         bedrock_dao_transparent.address,
-        {'from': admin})
-    gauge_controller_transparent.initialize(voting_escrow_transparent.address, {'from': admin})
-    ve_rewards_transparent.initialize(voting_escrow_transparent.address, bedrock_dao_transparent.address, {'from': admin})
+        {'from': owner})
+    gauge_controller_transparent.initialize(voting_escrow_transparent.address, {'from': owner})
+    ve_rewards_transparent.initialize(voting_escrow_transparent.address, bedrock_dao_transparent.address, {'from': owner})
     cashier_transparent.initialize(
         bedrock_dao_transparent.address,
         global_week_emission,
         gauge_controller_transparent,
         approved_account,
-        {'from': admin})
+        {'from': owner})
     penpie_adapter_1_transparent.initialize(
         penpie_market_1,
         bedrock_dao_transparent.address,
         bribe_manager_transparent.address,
-        {'from': admin})
+        {'from': owner})
     penpie_adapter_2_transparent.initialize(
         penpie_market_2,
         bedrock_dao_transparent.address,
         bribe_manager_transparent.address,
-        {'from': admin})
+        {'from': owner})
     penpie_adapter_3_transparent.initialize(
         penpie_market_3,
         bedrock_dao_transparent.address,
         bribe_manager_transparent.address,
-        {'from': admin})
+        {'from': owner})
 
     print("Initial Contract Status Check ......")
 
