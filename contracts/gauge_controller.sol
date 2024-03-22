@@ -335,66 +335,76 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     /**
-     *  @notice Get Gauge relative weight (not more than 1.0) normalized to 1e18
+     *  @notice Get gauge relative weight (not more than 1.0), normalized to 1e18
      *         (e.g. 1.0 == 1e18). Inflation which will be received by it is
      *         inflation_rate * relative_weight / 1e18
      *  @param _gAddr Gauge address
-     *  @param _time Relative weight at the specified timestamp in the past or present
-     *  @return Value of relative weight normalized to 1e18
+     *  @param _time Timestamp
+     *  @return Gauge relative weight, normalized to 1e18
      */
-    function gaugeRelativeWeight(address _gAddr, uint256 _time)
-        external
-        view
-        returns (uint256)
-    {
+    function gaugeRelativeWeight(address _gAddr, uint256 _time) external view returns (uint256) {
         return _gaugeRelativeWeight(_gAddr, _time);
     }
 
-    function gaugeRelativeWeight(address _gAddr)
-        external
-        view
-        returns (uint256)
-    {
+    /**
+     *  @notice Get current gauge relative weight (not more than 1.0), normalized to 1e18
+     *         (e.g. 1.0 == 1e18). Inflation which will be received by it is
+     *         inflation_rate * relative_weight / 1e18
+     *  @param _gAddr Gauge address
+     *  @return Gauge relative weight, normalized to 1e18
+     */
+    function gaugeRelativeWeight(address _gAddr) external view returns (uint256) {
         return _gaugeRelativeWeight(_gAddr, block.timestamp);
     }
 
     /**
      *  @notice Get current gauge weight
-     *  @dev Gets the gauge weight based on last checkpoint.
      *  @param _gAddr Gauge address
      *  @return Gauge weight
      */
     function getGaugeWeight(address _gAddr) external view returns (uint256) {
-        return gaugePoints[_gAddr][gaugeData[_gAddr].wtUpdateTime].bias;
+        return gaugePoints[_gAddr][_getWeek(block.timestamp)].bias;
     }
 
     /**
-     *  @notice Get the gauge weight at a provided week timestamp.
+     *  @notice Get gauge weight
      *  @param _gAddr Gauge address
-     *  @param _time Required week timestamp
-     *  @dev _time should be in ((time / WEEK) * WEEK) value.
-     *  @return Returns gauge weight for a week.
+     *  @param _time Timestamp
+     *  @return Gauge weight
      */
-    function getGaugeWeight(address _gAddr, uint256 _time)
-        external
-        view
-        returns (uint256)
-    {
+    function getGaugeWeight(address _gAddr, uint256 _time) external view returns (uint256) {
         return _getGaugeWeightReadOnly(_gAddr, _time);
     }
 
+    // TODO: It can be reverted. For more details, please check this issue: https://github.com/Bedrock-Technology/bedrock-dao/issues/45
     /**
-     *  @notice Get the gaugeWeight - w0 (base weight)
-     *  @param _gAddr gauge address
-     *  @param _time timestamp
-     *  @return returns only the vote weight for the gauge.
+     *  @notice Get current gaugeWeight - w0 (base weight).
+     *  @param _gAddr Gauge address
+     *  @return Vote weight for the gauge.
      */
-    function getUserVotesWtForGauge(address _gAddr, uint256 _time)
-        external
-        view
-        returns (uint256)
-    {
+    function getUserVotesWtForGauge(address _gAddr) external view returns (uint256) {
+        return _getGaugeWeightReadOnly(_gAddr, block.timestamp) - gaugeData[_gAddr].w0;
+    }
+
+    // TODO: It can be reverted. For more details, please check this issue: https://github.com/Bedrock-Technology/bedrock-dao/issues/45
+    /**
+     *  @notice Get gaugeWeight - w0 (base weight)
+     *  @param _gAddr Gauge address
+     *  @param _time Timestamp
+     *  @return Vote weight for the gauge.
+     */
+    function getUserVotesWtForGauge(address _gAddr, uint256 _time) external view returns (uint256) {
         return _getGaugeWeightReadOnly(_gAddr, _time) - gaugeData[_gAddr].w0;
+    }
+
+    // TODO: It could be refined with the following issue: https://github.com/Bedrock-Technology/bedrock-dao/issues/45
+    /**
+     *  @notice Get gauge base weight
+     *  @param _gAddr Gauge address
+     *  @return Gauge base weight
+     */
+    function getGaugeBaseWeight(address _gAddr)  external  view returns (uint256) {
+        return gaugeData[_gAddr].w0;
     }
 
     /**
@@ -403,7 +413,17 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Type weight
      */
     function getTypeWeight(uint128 _gType) external view returns (uint256) {
-        return typeWtAtTime[_gType][lastTypeWtTime[_gType]];
+        return typeWtAtTime[_gType][_getWeek(block.timestamp)];
+    }
+
+    /**
+     *  @notice Get type weight
+     *  @param _gType Type id
+     *  @param _time Timestamp
+     *  @return Type weight
+     */
+    function getTypeWeight(uint128 _gType, uint256 _time) external view returns (uint256) {
+        return typeWtAtTime[_gType][_getWeek(_time)];
     }
 
     /**
@@ -411,20 +431,35 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Total weight
      */
     function getTotalWeight() external view returns (uint256) {
-        return totalWtAtTime[timeTotal];
+        return totalWtAtTime[_getWeek(block.timestamp)];
+    }
+
+    /**
+     *  @notice Get total (type-weighted) weight
+     *  @param _time Timestamp
+     *  @return Total weight
+     */
+    function getTotalWeight(uint256 _time) external view returns (uint256) {
+        return totalWtAtTime[_getWeek(_time)];
+    }
+
+    /**
+     *  @notice Get current sum of gauge weights per type
+     *  @param _gType Type id
+     *  @return Sum of gauge weights
+     */
+    function getWeightsSumPerType(uint128 _gType) external view returns (uint256) {
+        return typePoints[_gType][_getWeek(block.timestamp)].bias;
     }
 
     /**
      *  @notice Get sum of gauge weights per type
      *  @param _gType Type id
+     *  @param _time Timestamp
      *  @return Sum of gauge weights
      */
-    function getWeightsSumPerType(uint128 _gType)
-        external
-        view
-        returns (uint256)
-    {
-        return typePoints[_gType][timeSum[_gType]].bias;
+    function getWeightsSumPerType(uint128 _gType, uint256 _time) external view returns (uint256) {
+        return typePoints[_gType][_getWeek(_time)].bias;
     }
 
     /**
@@ -432,6 +467,43 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      */
     function getGaugeList() external view returns (address[] memory) {
         return gauges;
+    }
+
+    /**
+     *  @notice Get last gauge weight schedule time
+     *  @param _gAddr Gauge address
+     *  @return Last schedule time
+     */
+    function getLastGaugeWtScheduleTime(address _gAddr) external view returns (uint256) {
+        return gaugeData[_gAddr].wtUpdateTime;
+    }
+
+    /**
+     *  @notice Get last type weight schedule time
+     *  @param _gType Gauge type
+     *  @return Last schedule time
+     */
+    function getLastTypeWtScheduleTime(uint128 _gType) external view returns (uint256) {
+        if (_gType >= MAX_NUM) return 0;
+        return lastTypeWtTime[_gType];
+    }
+
+    /**
+     *  @notice Get last sum weight schedule time for a gauge type
+     *  @param _gType Gauge type
+     *  @return Last schedule time
+     */
+    function getLastSumWtScheduleTime(uint128 _gType) external view returns (uint256) {
+        if (_gType >= MAX_NUM) return 0;
+        return timeSum[_gType];
+    }
+
+    /**
+     *  @notice Get last total weight schedule time
+     *  @return Last schedule time
+     */
+    function getLastTotalWtScheduleTime() external view returns (uint256) {
+        return timeTotal;
     }
 
     /**
