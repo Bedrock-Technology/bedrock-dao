@@ -31,10 +31,7 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     """
     Testnet BRT Contract
     """
-    token_proxy = TransparentUpgradeableProxy.at(dep_contracts[dep_network]["token"])
-    
-    transparent_token = Contract.from_abi(
-        "BedrockDAO", token_proxy.address, BedrockDAO.abi)
+    token_contract = BedrockDAO.at(dep_contracts[dep_network]["token"])
 
     """
     Deploy VotingEscrow contract
@@ -47,7 +44,7 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
             {'from': deployer}, publish_source=shouldPublishSource)
 
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
-    transparent_ve.initialize( "voting-escrow BRT", "veBRT", transparent_token, {'from': owner})
+    transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_contract, {'from': owner})
 
     """
     Deploy VE Rewards contract
@@ -60,12 +57,12 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
             {'from': deployer}, publish_source=shouldPublishSource)
 
     transparent_ve_rewards = Contract.from_abi("VeRewards", ve_rewards_proxy.address, VeRewards.abi)
-    transparent_ve_rewards.initialize(transparent_ve, transparent_token, {'from': owner})
+    transparent_ve_rewards.initialize(transparent_ve, token_contract, {'from': owner})
 
     # assign REWARDS_MANAGER_ROLE to rewards contract
     transparent_ve.assignRewardsManager(transparent_ve_rewards, {'from': owner})
 
-    print("TOKEN ADDRESS:", transparent_token)
+    print("TOKEN ADDRESS:", token_contract)
     print("VE ADDRESS:",transparent_ve) 
     print("VE REWARDS ADDRESS:",transparent_ve_rewards) 
 
