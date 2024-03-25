@@ -376,17 +376,18 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         return _getGaugeWeightReadOnly(_gAddr, _time);
     }
 
-    // TODO: It can be reverted. For more details, please check this issue: https://github.com/Bedrock-Technology/bedrock-dao/issues/45
     /**
      *  @notice Get current gaugeWeight - w0 (base weight).
      *  @param _gAddr Gauge address
      *  @return Vote weight for the gauge.
      */
     function getUserVotesWtForGauge(address _gAddr) external view returns (uint256) {
-        return _getGaugeWeightReadOnly(_gAddr, block.timestamp) - gaugeData[_gAddr].w0;
+        uint256 wt = _getGaugeWeightReadOnly(_gAddr, block.timestamp);
+        uint256 w0 = gaugeData[_gAddr].w0;
+        uint256 uwt = (wt > w0) ? (wt - w0) : 0;
+        return uwt;
     }
 
-    // TODO: It can be reverted. For more details, please check this issue: https://github.com/Bedrock-Technology/bedrock-dao/issues/45
     /**
      *  @notice Get gaugeWeight - w0 (base weight)
      *  @param _gAddr Gauge address
@@ -394,10 +395,12 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Vote weight for the gauge.
      */
     function getUserVotesWtForGauge(address _gAddr, uint256 _time) external view returns (uint256) {
-        return _getGaugeWeightReadOnly(_gAddr, _time) - gaugeData[_gAddr].w0;
+        uint256 wt = _getGaugeWeightReadOnly(_gAddr, _time);
+        uint256 w0 = gaugeData[_gAddr].w0;
+        uint256 uwt = (wt > w0) ? (wt - w0) : 0;
+        return uwt;
     }
 
-    // TODO: It could be refined with the following issue: https://github.com/Bedrock-Technology/bedrock-dao/issues/45
     /**
      *  @notice Get gauge base weight
      *  @param _gAddr Gauge address
