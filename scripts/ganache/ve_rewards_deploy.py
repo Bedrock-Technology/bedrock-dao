@@ -22,13 +22,8 @@ def main():
 
     print(f'contract owner account: {owner.address}\n')
 
-    token_contract = BedrockDAO.deploy(
-            {'from': deployer})
-
-    token_proxy =  TransparentUpgradeableProxy.deploy(
-            token_contract, deployer, b'',
-            {'from': deployer})
-
+    token_contract = BedrockDAO.deploy(owner, owner, owner, {'from': deployer})
+    
     ve_contract = VotingEscrow.deploy(
             {'from': deployer})
 
@@ -43,18 +38,15 @@ def main():
             ve_rewards_contract, deployer, b'',
             {'from': deployer})
 
-    transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
-    transparent_token.initialize({'from': owner})
-
-    print("BRT ADDRESS:", transparent_token)
+    print("BRT ADDRESS:", token_contract)
 
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
-    transparent_ve.initialize( "voting-escrow BRT", "veBRT", transparent_token, {'from': owner})
+    transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_contract, {'from': owner})
 
     print("VE ADDRESS:", transparent_ve)
 
     transparent_ve_rewards = Contract.from_abi("VeRewards", ve_rewards_proxy.address, VeRewards.abi)
-    transparent_ve_rewards.initialize(transparent_ve, transparent_token, {'from': owner})
+    transparent_ve_rewards.initialize(transparent_ve, token_contract, {'from': owner})
 
     # assign REWARDS_MANAGER_ROLE to rewards contract
     transparent_ve.assignRewardsManager(transparent_ve_rewards, {'from': owner})
@@ -63,16 +55,16 @@ def main():
 
     for voter in voters: 
         print("minting BRT token to: ", voter)
-        transparent_token.mint(voter, 100 * 1e18, {'from':owner})
+        token_contract.mint(voter, 100 * 1e18, {'from':owner})
         print("Approving BRT token to veBRT")
-        transparent_token.approve(transparent_ve, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':voter})
+        token_contract.approve(transparent_ve, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':voter})
         print("lock 100 * 1e18 value of account", voter, "for 300 days:")
         transparent_ve.createLock(100 * 1e18, chain.time() + 86400 * 300, {'from': voter})
 
     print("########## MINT REWARDS TO VE_REWARDS #############")
-    print('''transparent_token.mint(transparent_ve_rewards, 100000 * 1e18, {'from':owner})''')
-    transparent_token.mint(transparent_ve_rewards, 100000 * 1e18, {'from':owner})
-    print('''transparent_token.balanceOf(transparent_ve_rewards)''',transparent_token.balanceOf(transparent_ve_rewards))
+    print('''token_contract.mint(transparent_ve_rewards, 100000 * 1e18, {'from':owner})''')
+    token_contract.mint(transparent_ve_rewards, 100000 * 1e18, {'from':owner})
+    print('''token_contract.balanceOf(transparent_ve_rewards)''',token_contract.balanceOf(transparent_ve_rewards))
     print('''transparent_ve_rewards.updateReward({'from':owner})''', transparent_ve_rewards.updateReward({'from':owner}))
 
     print('''#### SLEEP ONE WEEK ####''')

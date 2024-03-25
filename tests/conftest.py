@@ -33,15 +33,7 @@ def setup_contracts(owner, deployer):
     """
     Deploy BedrockDAO
     """
-    token_contract = BedrockDAO.deploy(
-        {'from': deployer})
-
-    token_proxy =  TransparentUpgradeableProxy.deploy(
-        token_contract, deployer, b'',
-        {'from': deployer})
-    
-    transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
-    transparent_token.initialize({'from': owner})
+    token_contract = BedrockDAO.deploy(owner, owner, owner, {'from': deployer})
 
     """
     Deploy VotingEscrow
@@ -54,7 +46,7 @@ def setup_contracts(owner, deployer):
         {'from': deployer})
 
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
-    transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_proxy.address, {'from': owner})
+    transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_contract.address, {'from': owner})
 
     """
     Deploy Gauge Controller
@@ -88,7 +80,7 @@ def setup_contracts(owner, deployer):
     """
     test_market = accounts[5]
     transparent_mock_bribe_manager.newPool(test_market, chain.id, {'from': owner})
-    transparent_mock_bribe_manager.addAllowedTokens(transparent_token.address, {'from': owner})
+    transparent_mock_bribe_manager.addAllowedTokens(token_contract.address, {'from': owner})
 
     print(f'Test Market: {test_market}')    
 
@@ -102,6 +94,6 @@ def setup_contracts(owner, deployer):
         {'from': deployer})
     
     transparent_penpie_adapter = Contract.from_abi("PenpieAdapter", penpie_adapter_proxy.address, PenpieAdapter.abi)
-    transparent_penpie_adapter.initialize(test_market, transparent_token.address, transparent_mock_bribe_manager, {'from': owner})
+    transparent_penpie_adapter.initialize(test_market, token_contract.address, transparent_mock_bribe_manager, {'from': owner})
    
-    return transparent_token, transparent_ve, transparent_gauge, transparent_penpie_adapter, transparent_mock_bribe_manager
+    return token_contract, transparent_ve, transparent_gauge, transparent_penpie_adapter, transparent_mock_bribe_manager
