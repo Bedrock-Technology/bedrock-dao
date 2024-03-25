@@ -40,18 +40,4 @@ contract BedrockDAO is ERC20, ERC20Burnable, AccessControl, ERC20Pausable, ERC20
     {
         super._beforeTokenTransfer(from, to, amount);
     }
-
-    function _mint(address to, uint256 amount)
-        internal
-        override(ERC20)
-    {
-        super._mint(to, amount);
-    }
-
-    function _burn(address account, uint256 amount)
-        internal
-        override(ERC20)
-    {
-        super._burn(account, amount);
-    }
 }
