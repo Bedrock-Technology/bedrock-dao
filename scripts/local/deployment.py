@@ -30,7 +30,7 @@ def main():
     print("Contract Deployment ......")
 
     bribe_manager = BribeManager.deploy({'from': deployer})
-    bedrock_dao = BedrockDAO.deploy({'from': deployer})
+    bedrock_dao = BedrockDAO.deploy(owner, owner, owner, {'from': deployer})
     voting_escrow = VotingEscrow.deploy({'from': deployer})
     gauge_controller = GaugeController.deploy({'from': deployer})
     ve_rewards = VeRewards.deploy({'from': deployer})
@@ -40,7 +40,6 @@ def main():
     penpie_adapter_3 = PenpieAdapter.deploy({'from': deployer})
 
     bribe_manager_proxy = TransparentUpgradeableProxy.deploy(bribe_manager, deployer, b'', {'from': deployer})
-    bedrock_dao_proxy = TransparentUpgradeableProxy.deploy(bedrock_dao, deployer, b'', {'from': deployer})
     voting_escrow_proxy = TransparentUpgradeableProxy.deploy(voting_escrow, deployer, b'', {'from': deployer})
     gauge_controller_proxy = TransparentUpgradeableProxy.deploy(gauge_controller, deployer, b'', {'from': deployer})
     ve_rewards_proxy = TransparentUpgradeableProxy.deploy(ve_rewards, deployer, b'', {'from': deployer})
@@ -62,7 +61,6 @@ def main():
     print(" ")
 
     print("Deployed BribeManager Proxy address:", bribe_manager_proxy)
-    print("Deployed BedrockDAO Proxy address:", bedrock_dao_proxy)
     print("Deployed VotingEscrow Proxy address:", voting_escrow_proxy)
     print("Deployed GaugeController Proxy address:", gauge_controller_proxy)
     print("Deployed VeRewards Proxy address:", ve_rewards_proxy)
@@ -75,7 +73,6 @@ def main():
     print("Contract Initialization ......")
 
     bribe_manager_transparent = Contract.from_abi("BribeManager", bribe_manager_proxy.address, BribeManager.abi)
-    bedrock_dao_transparent = Contract.from_abi("BedrockDAO", bedrock_dao_proxy.address, BedrockDAO.abi)
     voting_escrow_transparent = Contract.from_abi("VotingEscrow", voting_escrow_proxy.address, VotingEscrow.abi)
     gauge_controller_transparent = Contract.from_abi("GaugeController", gauge_controller_proxy.address, GaugeController.abi)
     ve_rewards_transparent = Contract.from_abi("VeRewards", ve_rewards_proxy.address, VeRewards.abi)
@@ -85,66 +82,65 @@ def main():
     penpie_adapter_3_transparent = Contract.from_abi("PenpieAdapter", penpie_adapter_3_proxy.address, PenpieAdapter.abi)
 
     bribe_manager_transparent.initialize({'from': owner})
-    bedrock_dao_transparent.initialize({'from': owner})
     voting_escrow_transparent.initialize(
-        bedrock_dao_transparent.name(),
-        bedrock_dao_transparent.symbol(),
-        bedrock_dao_transparent.address,
+        bedrock_dao.name(),
+        bedrock_dao.symbol(),
+        bedrock_dao.address,
         {'from': owner})
     gauge_controller_transparent.initialize(voting_escrow_transparent.address, {'from': owner})
-    ve_rewards_transparent.initialize(voting_escrow_transparent.address, bedrock_dao_transparent.address, {'from': owner})
+    ve_rewards_transparent.initialize(voting_escrow_transparent.address, bedrock_dao.address, {'from': owner})
     cashier_transparent.initialize(
-        bedrock_dao_transparent.address,
+        bedrock_dao.address,
         global_week_emission,
         gauge_controller_transparent,
         approved_account,
         {'from': owner})
     penpie_adapter_1_transparent.initialize(
         penpie_market_1,
-        bedrock_dao_transparent.address,
+        bedrock_dao.address,
         bribe_manager_transparent.address,
         {'from': owner})
     penpie_adapter_2_transparent.initialize(
         penpie_market_2,
-        bedrock_dao_transparent.address,
+        bedrock_dao.address,
         bribe_manager_transparent.address,
         {'from': owner})
     penpie_adapter_3_transparent.initialize(
         penpie_market_3,
-        bedrock_dao_transparent.address,
+        bedrock_dao.address,
         bribe_manager_transparent.address,
         {'from': owner})
 
     print("Initial Contract Status Check ......")
 
-    assert bedrock_dao_transparent.name() == "Bedrock DAO"
-    assert bedrock_dao_transparent.symbol() == "BRT"
+    assert bedrock_dao.name() == "Bedrock DAO"
+    assert bedrock_dao.symbol() == "BRT"
 
-    assert voting_escrow_transparent.name() == bedrock_dao_transparent.name()
-    assert voting_escrow_transparent.symbol() == bedrock_dao_transparent.symbol()
-    assert voting_escrow_transparent.assetToken() == bedrock_dao_transparent.address
+    assert voting_escrow_transparent.name() == bedrock_dao.name()
+    assert voting_escrow_transparent.symbol() == bedrock_dao.symbol()
+    assert voting_escrow_transparent.assetToken() == bedrock_dao.address
 
     assert gauge_controller_transparent.votingEscrow() == voting_escrow_transparent.address
 
     assert ve_rewards_transparent.votingEscrow() == voting_escrow_transparent.address
-    assert ve_rewards_transparent.rewardToken() == bedrock_dao_transparent.address
+    assert ve_rewards_transparent.rewardToken() == bedrock_dao.address
 
-    assert cashier_transparent.rewardToken() == bedrock_dao_transparent.address
+    assert cashier_transparent.rewardToken() == bedrock_dao.address
     assert cashier_transparent.globalWeekEmission() == global_week_emission
     assert cashier_transparent.gaugeController() == gauge_controller_transparent.address
     assert cashier_transparent.gaugeController() == gauge_controller_transparent.address
     assert cashier_transparent.approvedAccount() == approved_account
 
     assert penpie_adapter_1_transparent.pendleMarket() == penpie_market_1
-    assert penpie_adapter_1_transparent.rewardToken() == bedrock_dao_transparent.address
+    assert penpie_adapter_1_transparent.rewardToken() == bedrock_dao.address
     assert penpie_adapter_1_transparent.bribeManager() == bribe_manager_transparent.address
 
     assert penpie_adapter_2_transparent.pendleMarket() == penpie_market_2
-    assert penpie_adapter_2_transparent.rewardToken() == bedrock_dao_transparent.address
+    assert penpie_adapter_2_transparent.rewardToken() == bedrock_dao.address
     assert penpie_adapter_2_transparent.bribeManager() == bribe_manager_transparent.address
 
     assert penpie_adapter_3_transparent.pendleMarket() == penpie_market_3
-    assert penpie_adapter_3_transparent.rewardToken() == bedrock_dao_transparent.address
+    assert penpie_adapter_3_transparent.rewardToken() == bedrock_dao.address
     assert penpie_adapter_3_transparent.bribeManager() == bribe_manager_transparent.address
 
 
