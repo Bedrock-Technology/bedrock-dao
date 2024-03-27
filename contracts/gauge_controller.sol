@@ -30,6 +30,7 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
  */
 contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     bytes32 public constant AUTHORIZED_OPERATOR = keccak256("AUTHORIZED_OPERATOR_ROLE");
+    bytes32 public constant VOTING_ESCROW = keccak256("VOTING_ESCROW_ROLE");
 
     struct Point {
         uint256 bias;
@@ -290,6 +291,52 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         emit GaugeVoted(block.timestamp, msg.sender, _gAddr, _userWeight, voteUsed);
     }
 
+    /**
+     *  @notice Increase user vote weight for gauges automatically after their voting power has increased based on their
+                existing lock, either by extending the duration of their existing lock or by adding more funds
+     *  @param _user The address of the veBRT holder
+     *  @param _slope The latest slope of the user's point
+     *  @param _lockEnd The latest BRT lock end time for the user
+     */
+    function voteForGaugeWeightAutomatically(address _user, int128 _slope, uint256 _lockEnd)
+        external
+        onlyRole(VOTING_ESCROW)
+    {
+        uint256 nextTime = _getWeek(block.timestamp + WEEK);
+        if (_lockEnd <= nextTime) return;
+
+        for (uint i = 0; i < gauges.length; i++) {
+            // Prepare slopes and biases in memory
+            address _gAddr = gauges[i];
+            VoteData memory oldVoteData = userVoteData[_user][_gAddr];
+            if (oldVoteData.power == 0) continue;
+            uint256 userWeight = oldVoteData.power;
+            uint256 voteTime = block.timestamp;
+
+            VoteData memory newVoteData = VoteData({
+                slope: (SafeCast.toUint256(_slope) * userWeight) / PREC,
+                end: _lockEnd,
+                power: userWeight,
+                voteTime: voteTime
+            });
+
+            // Update scheduled changes
+            _updateScheduledChanges(
+                oldVoteData,
+                newVoteData,
+                nextTime,
+                _lockEnd,
+                _gAddr
+            );
+
+            userVoteData[_user][_gAddr] = newVoteData;
+            uint256 voteUsed = newVoteData.slope * (newVoteData.end - newVoteData.voteTime);
+
+            emit GaugeVoted(voteTime, _user, _gAddr, userWeight, voteUsed);
+        }
+
+        _getTotal();
+    }
 
     /**
      *  @notice Get gauge weight normalized to 1e18 and also fill all the unfilled
