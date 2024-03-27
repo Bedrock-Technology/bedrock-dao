@@ -228,6 +228,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         require(unlock_time <= block.timestamp + MAXTIME, "Exceeds maxtime");
 
         _depositFor(account, _value, unlock_time, locked_, LockAction.CREATE_LOCK);
+
+        Point memory point = userPointHistory[account][userPointEpoch[account]];
+        IGaugeController(gaugeController).voteForGaugeWeightAutomatically(account, point.slope, unlock_time);
     }
 
     /**

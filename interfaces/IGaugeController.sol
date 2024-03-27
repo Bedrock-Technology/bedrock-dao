@@ -15,8 +15,8 @@ interface IGaugeController {
     /// @notice checkpoints gauge weight for missing weeks
     function checkpointGauge(address _gAddr) external;
 
-    /// @notice Increase user vote weight for gauges automatically after their voting power has increased based on their
-    ///         existing lock, either by extending the duration of their existing lock or by adding more funds
+    /// @notice Increase the weight of user votes for gauges automatically in proportion to the current user votes after
+    ///         a user's voting power has increased due to locking activities.
     /// @param _user The address of the veBRT holder
     /// @param _slope The latest slope of the user's point
     /// @param _lockEnd The latest BRT lock end time for the user
