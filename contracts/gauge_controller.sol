@@ -509,7 +509,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         }
 
         // Updating type related data
-        for (uint8 i = 0; i < numTypes; i++) {
+        for (uint16 i = 0; i < numTypes; i++) {
             _getSum(i);
             _getTypeWeight(i);
         }
