@@ -16,7 +16,9 @@
 pragma solidity ^0.8.9;
 import "interfaces/IVotingEscrow.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /**
@@ -28,7 +30,8 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
  *              (see: https://arbiscan.io/address/0xdce2810fc24d8ec8a6d2d749e1248e3f0ba97257#code)
  *          RockX Team - this version, structure and code optimized, role-based access-control
  */
-contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
+contract GaugeController is Initializable, PausableUpgradeable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant AUTHORIZED_OPERATOR = keccak256("AUTHORIZED_OPERATOR_ROLE");
 
     struct Point {
@@ -108,6 +111,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     function initialize(address _votingEscrow) initializer public {
+        __Pausable_init();
         __AccessControl_init();
         __ReentrancyGuard_init();
 
@@ -116,6 +120,20 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(AUTHORIZED_OPERATOR, msg.sender);
+    }
+
+    /**
+     * @dev pause the contract
+     */
+    function pause() public onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    /**
+     * @dev unpause the contract
+     */
+    function unpause() public onlyRole(PAUSER_ROLE) {
+        _unpause();
     }
 
     /**
@@ -242,6 +260,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     function voteForGaugeWeight(address _gAddr, uint256 _userWeight)
         external
         nonReentrant
+        whenNotPaused
     {
         require(
             _userWeight >= 0 && _userWeight <= PREC,
