@@ -645,6 +645,10 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     ) private {
         uint128 gType = _getGaugeType(_gAddr);
 
+        _getTypeWeight(gType);
+        uint256 typeWt = typeWtAtTime[gType][_nextTime];
+        require(typeWt > 0, "Can't vote for a gauge with zero type weight");
+
         // Calculate the current bias based on the oldVoteData.
         uint256 old_dt = 0;
         if (_oldVoteData.end > _nextTime) {
