@@ -119,6 +119,7 @@ contract GaugeController is Initializable, PausableUpgradeable, AccessControlUpg
         timeTotal = block.timestamp / WEEK * WEEK;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(AUTHORIZED_OPERATOR, msg.sender);
     }
 
