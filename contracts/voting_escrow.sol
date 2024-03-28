@@ -14,6 +14,7 @@
 // ⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀
 pragma solidity ^0.8.9;
 
+import "interfaces/IGaugeController.sol";
 import "interfaces/IVotingEscrow.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -77,6 +78,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     uint256 public totalLocked;
     address public assetToken;
 
+    // Gauge controller
+    address public gaugeController;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -85,7 +89,8 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     function initialize(
         string memory _name,
         string memory _symbol,
-        address _assetToken) initializer public
+        address _assetToken,
+        address _gaugeController) initializer public
     {
         require(_assetToken != address(0x0), "Asset address nil");
         __Pausable_init();
@@ -112,6 +117,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
 
         // bind asset token
         assetToken = _assetToken;
+
+        // bind gauge controller
+        gaugeController = _gaugeController;
     }
 
     /**
@@ -190,6 +198,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         require(locked_.end > block.timestamp, "Cannot add to expired lock. Withdraw");
 
         _depositFor(_addr, _value, 0, locked_, LockAction.DEPOSIT_FOR);
+
+        Point memory point = userPointHistory[_addr][userPointEpoch[_addr]];
+        IGaugeController(gaugeController).voteForGaugeWeightAutomatically(_addr, point.slope, locked_.end);
     }
 
      /**
@@ -217,6 +228,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         require(unlock_time <= block.timestamp + MAXTIME, "Exceeds maxtime");
 
         _depositFor(account, _value, unlock_time, locked_, LockAction.CREATE_LOCK);
+
+        Point memory point = userPointHistory[account][userPointEpoch[account]];
+        IGaugeController(gaugeController).voteForGaugeWeightAutomatically(account, point.slope, unlock_time);
     }
 
     /**
@@ -240,6 +254,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         require(locked_.end > block.timestamp, "Cannot add to expired lock. Withdraw");
 
         _depositFor(account, _value, 0, locked_, LockAction.INCREASE_AMOUNT);
+
+        Point memory point = userPointHistory[account][userPointEpoch[account]];
+        IGaugeController(gaugeController).voteForGaugeWeightAutomatically(account, point.slope, locked_.end);
     }
 
     /**
@@ -265,6 +282,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         require(unlock_time <= block.timestamp + MAXTIME, "Exceeds maxtime");
 
         _depositFor(account, 0, unlock_time, locked_, LockAction.INCREASE_TIME);
+
+        Point memory point = userPointHistory[account][userPointEpoch[account]];
+        IGaugeController(gaugeController).voteForGaugeWeightAutomatically(account, point.slope, unlock_time);
     }
 
     /**

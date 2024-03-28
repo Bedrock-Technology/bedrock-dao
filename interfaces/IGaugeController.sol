@@ -15,6 +15,13 @@ interface IGaugeController {
     /// @notice checkpoints gauge weight for missing weeks
     function checkpointGauge(address _gAddr) external;
 
+    /// @notice Increase the weight of user votes for gauges automatically in proportion to the current user votes after
+    ///         a user's voting power has increased due to locking activities.
+    /// @param _user The address of the veBRT holder
+    /// @param _slope The latest slope of the user's point
+    /// @param _lockEnd The latest BRT lock end time for the user
+    function voteForGaugeWeightAutomatically(address _user, int128 _slope, uint256 _lockEnd) external;
+
     /// @notice Get gauge weight normalized to 1e18 and also fill all the unfilled
     ///         values for type and gauge records
     /// @dev Any address can call, however nothing is recorded if the values are filled already
