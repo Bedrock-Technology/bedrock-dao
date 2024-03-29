@@ -647,7 +647,9 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
 
         _getTypeWeight(gType);
         uint256 typeWt = typeWtAtTime[gType][_nextTime];
-        require(typeWt > 0, "Can't vote for a gauge with zero type weight");
+        if (typeWt == 0) {
+            require(_newVoteData.power == 0, "Votes for a gauge with zero type weight");
+        }
 
         // Calculate the current bias based on the oldVoteData.
         uint256 old_dt = 0;
