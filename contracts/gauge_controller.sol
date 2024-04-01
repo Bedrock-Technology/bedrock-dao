@@ -117,6 +117,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(AUTHORIZED_OPERATOR, msg.sender);
+        _grantRole(VOTING_ESCROW, _votingEscrow);
     }
 
     /**
