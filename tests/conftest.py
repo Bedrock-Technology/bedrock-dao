@@ -95,5 +95,17 @@ def setup_contracts(owner, deployer):
     
     transparent_penpie_adapter = Contract.from_abi("PenpieAdapter", penpie_adapter_proxy.address, PenpieAdapter.abi)
     transparent_penpie_adapter.initialize(test_market, token_contract.address, transparent_mock_bribe_manager, {'from': owner})
+
+    """
+    Deploy VeRewards
+    """
+    ve_rewards = VeRewards.deploy(
+        {'from': deployer})
+    ve_rewards_proxy = TransparentUpgradeableProxy.deploy(
+        ve_rewards, deployer, b'',
+        {'from': deployer})
+
+    transparent_ve_rewards = Contract.from_abi("VeRewards", ve_rewards_proxy.address, VeRewards.abi)
+    transparent_ve_rewards.initialize(transparent_ve, token_contract, {'from': owner})
    
-    return token_contract, transparent_ve, transparent_gauge, transparent_penpie_adapter, transparent_mock_bribe_manager
+    return token_contract, transparent_ve, transparent_gauge, transparent_penpie_adapter, transparent_mock_bribe_manager, transparent_ve_rewards
