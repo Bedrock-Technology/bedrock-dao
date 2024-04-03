@@ -173,12 +173,13 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
                 break;
             }
             settleToWeek = nextWeek;
+            uint256 preSettleWeek = settleToWeek - WEEK;
 
             // get total supply of the week
-            uint256 totalSupply = IVotingEscrow(votingEscrow).totalSupply(settleToWeek);
+            uint256 totalSupply = IVotingEscrow(votingEscrow).totalSupply(preSettleWeek);
             if (totalSupply > 0) {  // avert division by zero 
                 profits += weeklyProfits[settleToWeek]
-                            * IVotingEscrow(votingEscrow).balanceOf(account, settleToWeek)
+                            * IVotingEscrow(votingEscrow).balanceOf(account, preSettleWeek)
                             / totalSupply;
             }
         }
