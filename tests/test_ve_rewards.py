@@ -1,4 +1,76 @@
 from brownie import accounts, chain
+import brownie
+
+
+def test_claim(setup_contracts, owner, floorToWeek, daysInSeconds):
+    token, voting_escrow, ve_rewards = setup_contracts[0], setup_contracts[1], setup_contracts[5]
+    amount = 100e18
+    lp = accounts[2]
+    oracle = accounts[4]
+
+    week = daysInSeconds(7)
+
+    week0 = ve_rewards.genesisWeek()
+    week1 = week0 + week
+    week2 = week1 + week
+    week3 = week2 + week
+
+    current_week = week0
+
+    scenarios = [
+        # Scenario 0 (Week 0): Profits cannot be claimed while the contract is paused.
+        {"Revert": True, "RevertMsg": "Pausable: paused", "Restake": False, "Event": "", "UserLastSettledWeek": week0,
+         "BRTBalanceOfVotingEscrow": 0, "BRTBalanceOfVeRewards": 0, "BRTBalanceOfUser": 0},
+
+        # Scenario 1 (Week 1): No pending profits. Executing a claim does not cause a change in contract status.
+        {"Revert": False, "RevertMsg": "", "Restake": False, "Event": "", "UserLastSettledWeek": 0,
+         "BRTBalanceOfVotingEscrow": amount, "BRTBalanceOfVeRewards": amount, "BRTBalanceOfUser": 0},
+
+        # Scenario 2 (Week 2): Profits pending were reinvested in the existing lock.
+        {"Revert": False, "RevertMsg": "", "Restake": True, "Event": "Locked", "UserLastSettledWeek": week2,
+         "BRTBalanceOfVotingEscrow": 2*amount, "BRTBalanceOfVeRewards": amount, "BRTBalanceOfUser": 0},
+
+        # Scenario 3 (Week 3): Pending profits credited to user's account
+        {"Revert": False, "RevertMsg": "", "Restake": False, "Event": "Claimed", "UserLastSettledWeek": week3,
+         "BRTBalanceOfVotingEscrow": 2*amount, "BRTBalanceOfVeRewards": amount, "BRTBalanceOfUser": amount},
+    ]
+
+    lock_end = floorToWeek(chain.time()) + 5 * week
+    token.mint(lp, amount, {"from": owner})
+    token.approve(voting_escrow, amount, {"from": lp})
+    voting_escrow.createLock(amount, lock_end, {"from": lp})
+
+    voting_escrow.assignRewardsManager(ve_rewards, {'from': owner})
+
+    for s in scenarios:
+        # Test revert path
+        if s['Revert']:
+            assert not ve_rewards.paused()
+            ve_rewards.pause({"from": owner})
+            assert ve_rewards.paused()
+            with brownie.reverts(s['RevertMsg']):
+                ve_rewards.claim(s['Restake'], {'from': lp})
+            ve_rewards.unpause({"from": owner})
+            assert not ve_rewards.paused()
+        else:
+            # Generate rewards if locks have not yet expired.
+            if voting_escrow.totalSupply(current_week) > 0:
+                token.mint(ve_rewards, amount, {"from": owner})
+                ve_rewards.updateReward({"from": oracle})
+
+            # Check the post-condition of the claim function.
+            tx = ve_rewards.claim(s['Restake'], {'from': lp})
+            if not s['Event'] == "":
+                assert s['Event'] in tx.events
+            assert ve_rewards.userLastSettledWeek(lp) == s['UserLastSettledWeek']
+            assert token.balanceOf(voting_escrow) == s['BRTBalanceOfVotingEscrow']
+            assert token.balanceOf(ve_rewards) == s['BRTBalanceOfVeRewards']
+            assert token.balanceOf(lp) == s['BRTBalanceOfUser']
+
+        # Fast forward block time by one week
+        chain.sleep(week)
+        current_week += week
+        ve_rewards.updateReward({"from": oracle})
 
 
 def test_updateReward(setup_contracts, owner, floorToWeek, daysInSeconds):
