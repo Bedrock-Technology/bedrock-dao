@@ -14,7 +14,6 @@
 // ⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀
 pragma solidity ^0.8.9;
 
-import "interfaces/IVotingEscrow.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -33,7 +32,7 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
  *          1) role based ACL.
  */
 
-contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
+contract VotingEscrow is Initializable, PausableUpgradeable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -175,7 +174,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function depositFor(address _addr, uint128 _value)
         external
-        override
         nonReentrant
         whenNotPaused
         onlyRole(REWARDS_MANAGER_ROLE)
@@ -199,7 +197,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function createLock(uint256 _value, uint256 _unlockTime)
         external
-        override
         nonReentrant
         whenNotPaused
     {
@@ -225,7 +222,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function increaseLockAmount(uint256 _value)
         external
-        override
         nonReentrant
         whenNotPaused
     {
@@ -248,7 +244,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function increaseLockLength(uint256 _unlockTime)
         external
-        override
         nonReentrant
         whenNotPaused
     {
@@ -272,7 +267,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function withdraw()
         external
-        override
         nonReentrant
         whenNotPaused
     {
@@ -359,7 +353,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      * @param _account User for which to return the voting power
      * @return Voting power of user
      */
-    function balanceOf(address _account) external view override returns (uint256) {
+    function balanceOf(address _account) external view returns (uint256) {
         uint256 epoch = userPointEpoch[_account];
         if (epoch == 0) {
             return 0;
@@ -385,7 +379,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     function balanceOf(address _account, uint256 _ts)
         public
         view
-        override
         returns (uint256)
     {
         uint256 epoch = _findUserTimestampEpoch(_account, _ts);
@@ -413,7 +406,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     function balanceOfAt(address _account, uint256 _blockNumber)
         external
         view
-        override
         returns (uint256)
     {
         require(_blockNumber <= block.number, "Only past block number");
@@ -465,7 +457,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      * @dev Calculate current total supply of voting power
      * @return Current totalSupply
      */
-    function totalSupply() external view override returns (uint256) {
+    function totalSupply() external view returns (uint256) {
         uint256 epoch_ = globalEpoch;
         Point memory lastPoint = pointHistory[epoch_];
         return _supplyAt(lastPoint, block.timestamp);
@@ -475,7 +467,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      * @notice Calculate total voting power at a given timestamp
      * @return Total voting power at timestamp
      */
-    function totalSupply(uint256 ts) public view override returns (uint256) {
+    function totalSupply(uint256 ts) public view returns (uint256) {
         uint256 _epoch = _findTimestampEpoch(ts);
         if (_epoch ==0) return 0;
         Point memory lastPoint = pointHistory[_epoch];
@@ -490,7 +482,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     function totalSupplyAt(uint256 _blockNumber)
         external
         view
-        override
         returns (uint256)
     {
         require(_blockNumber <= block.number, "Only past block number");
