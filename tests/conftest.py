@@ -16,6 +16,14 @@ def deployer():
     return accounts[1]
 
 @pytest.fixture
+def approved_account():
+    return accounts[2]
+
+@pytest.fixture
+def global_week_emission():
+    return 100 * 1e18
+
+@pytest.fixture
 def floorToWeek():
     return lambda t : math.floor(t/(86400*7)) * (86400*7)
 
@@ -24,7 +32,7 @@ def daysInSeconds():
     return lambda days: days * 24 * 60 * 60
 
 @pytest.fixture
-def setup_contracts(owner, deployer):
+def setup_contracts(owner, deployer, approved_account, global_week_emission):
 
     chain.reset()
     TransparentUpgradeableProxy = deps.TransparentUpgradeableProxy
@@ -107,5 +115,28 @@ def setup_contracts(owner, deployer):
 
     transparent_ve_rewards = Contract.from_abi("VeRewards", ve_rewards_proxy.address, VeRewards.abi)
     transparent_ve_rewards.initialize(transparent_ve, token_contract, {'from': owner})
+
+    """
+    Deploy Cashier
+    """
+    cashier = Cashier.deploy(
+        {'from': deployer})
+    cashier_proxy = TransparentUpgradeableProxy.deploy(
+        cashier, deployer, b'',
+        {'from': deployer})
+
+    transparent_cashier = Contract.from_abi("Cashier", cashier_proxy.address, Cashier.abi)
+    transparent_cashier.initialize(token_contract, global_week_emission, transparent_gauge, approved_account, {'from': owner})
+
+    """
+    Add gauge types
+    """
+    transparent_gauge.addType("TYPE0", 1, {'from': owner})
+
+    """
+    Add gauges
+    """
+    transparent_gauge.addGauge(transparent_penpie_adapter, 0, 100 * 1e18, {'from': owner})
    
-    return token_contract, transparent_ve, transparent_gauge, transparent_penpie_adapter, transparent_mock_bribe_manager, transparent_ve_rewards
+    return (token_contract, transparent_ve, transparent_gauge, transparent_penpie_adapter,
+            transparent_mock_bribe_manager, transparent_ve_rewards, transparent_cashier)
