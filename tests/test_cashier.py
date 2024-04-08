@@ -97,8 +97,6 @@ def test_currentRewards(setup_contracts, owner, approved_account, floorToWeek, d
     voting_escrow.createLock(amount, lock_end, {"from": lp})
     gauge_controller.voteForGaugeWeight(penpie_adapter, gauge_controller.PREC(), {'from': lp})
 
-
-
     for i, s in enumerate(scenarios):
         if i == 0:
             chain.sleep(week)
@@ -119,4 +117,13 @@ def test_currentRewards(setup_contracts, owner, approved_account, floorToWeek, d
         assert cashier.nextRewardTime(penpie_adapter) == s['NextRewardTime']
         assert gauge_controller.gaugeRelativeWeight(penpie_adapter) == s['GaugeRelativeWeight']
 
+
+def test_setGlobalEmissionRate(setup_contracts, owner):
+    cashier = setup_contracts[6]
+
+    amount = cashier.globalWeekEmission()
+
+    tx = cashier.setGlobalEmissionRate(amount*2, {"from": owner})
+    assert "GlobalEmissionRateSet" in tx.events
+    assert cashier.globalWeekEmission() == 2*amount
 
