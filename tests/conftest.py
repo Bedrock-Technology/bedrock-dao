@@ -20,6 +20,10 @@ def approved_account():
     return accounts[2]
 
 @pytest.fixture
+def zero_address():
+    return accounts.at("0x0000000000000000000000000000000000000000", True)
+
+@pytest.fixture
 def global_week_emission():
     return 100 * 1e18
 
