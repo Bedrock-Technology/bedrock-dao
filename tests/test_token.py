@@ -55,3 +55,45 @@ def test_approve(setup_contracts, approved_account, zero_address):
     tx = token.approve(lp, amount, {'from': approved_account})
     assert "Approval" in tx.events
     assert token.allowance(approved_account, lp) == amount
+
+
+def test_increaseAllowance(setup_contracts, approved_account, zero_address):
+    token = setup_contracts[0]
+
+    amount = 1e18
+
+    lp = accounts[2]
+
+    # Scenario 1: Can't approve from the zero address.
+    with brownie.reverts("ERC20: approve from the zero address"):
+        token.increaseAllowance(lp, amount, {'from': zero_address})
+
+    # Scenario 2: Can't approve to the zero address.
+    with brownie.reverts("ERC20: approve to the zero address"):
+        token.increaseAllowance(zero_address, amount, {'from': approved_account})
+
+    # Scenario 3: The approval was successful, and the allowance has been updated.
+    tx = token.increaseAllowance(lp, amount, {'from': approved_account})
+    assert "Approval" in tx.events
+    assert token.allowance(approved_account, lp) == amount
+
+
+def test_decreaseAllowance(setup_contracts, approved_account):
+    token = setup_contracts[0]
+
+    amount = 1e18
+
+    lp = accounts[2]
+
+    # Scenario 1: Can't decrease allowance below zero.
+    with brownie.reverts("ERC20: decreased allowance below zero"):
+        token.decreaseAllowance(lp, amount, {'from': approved_account})
+
+    # Scenario 2: The approval was successful, and the allowance has been updated.
+    tx = token.increaseAllowance(lp, amount, {'from': approved_account})
+    assert "Approval" in tx.events
+    assert token.allowance(approved_account, lp) == amount
+
+    tx = token.decreaseAllowance(lp, amount, {'from': approved_account})
+    assert "Approval" in tx.events
+    assert token.allowance(approved_account, lp) == 0
