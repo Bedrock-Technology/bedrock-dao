@@ -119,8 +119,8 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
         uint256 rewards = (globalWeekEmission * gaugeRelativeWt) / (MULTIPLIER);
         return rewards;
     }
-    
-    /** 
+
+    /**
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      * 
      *      INTERNAL HELPER 
