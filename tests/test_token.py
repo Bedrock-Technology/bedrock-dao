@@ -97,3 +97,31 @@ def test_decreaseAllowance(setup_contracts, approved_account):
     tx = token.decreaseAllowance(lp, amount, {'from': approved_account})
     assert "Approval" in tx.events
     assert token.allowance(approved_account, lp) == 0
+
+
+def test_transfer(setup_contracts, owner, zero_address):
+    token = setup_contracts[0]
+
+    amount = 1e18
+
+    lp = accounts[2]
+
+    # Scenario 1: Can't approve from the zero address.
+    with brownie.reverts("ERC20: transfer from the zero address"):
+        token.transfer(lp, amount, {'from': zero_address})
+
+    # Scenario 2: Can't approve to the zero address.
+    with brownie.reverts("ERC20: transfer to the zero address"):
+        token.transfer(zero_address, amount, {'from': owner})
+
+    # Scenario 3: Cannot transfer an amount exceeding the balance.
+    with brownie.reverts("ERC20: transfer amount exceeds balance"):
+        token.transfer(lp, amount, {'from': owner})
+
+    # Scenario 4: The approval was successful, and the allowance has been updated.
+    token.mint(owner, amount, {'from': owner})
+
+    tx = token.transfer(lp, amount, {'from': owner})
+    assert "Transfer" in tx.events
+    assert token.balanceOf(owner) == 0
+    assert token.balanceOf(lp) == amount
