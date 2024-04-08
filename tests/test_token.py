@@ -124,7 +124,7 @@ def test_transfer(setup_contracts, owner, zero_address):
     with brownie.reverts("Pausable: paused"):
         token.transfer(lp, amount, {'from': owner})
 
-    # Scenario 5: The approval was successful, and the allowance has been updated.
+    # Scenario 5: The transfer was successful, and the allowance has been updated.
     token.unpause({"from": owner})
     assert not token.paused()
     token.mint(owner, amount, {'from': owner})
@@ -133,3 +133,38 @@ def test_transfer(setup_contracts, owner, zero_address):
     assert "Transfer" in tx.events
     assert token.balanceOf(owner) == 0
     assert token.balanceOf(lp) == amount
+
+
+def test_transferFrom(setup_contracts, owner, approved_account, zero_address):
+    token = setup_contracts[0]
+
+    amount = 1e18
+
+    lp = accounts[2]
+
+    # Scenario 0: Can't transfer for insufficient allowance.
+    with brownie.reverts("ERC20: insufficient allowance"):
+        token.transferFrom(approved_account, owner, amount, {'from': lp})
+
+    # Scenario 3: Cannot transfer an amount exceeding the balance.
+    token.approve(lp, amount, {'from': approved_account})
+
+    with brownie.reverts("ERC20: transfer amount exceeds balance"):
+        token.transferFrom(approved_account, owner, amount, {'from': lp})
+
+    # Scenario 4: Can't transfer when the contract is paused.
+    token.pause({"from": owner})
+    assert token.paused()
+    with brownie.reverts("Pausable: paused"):
+        token.transferFrom(lp, owner, amount, {'from': lp})
+
+    # Scenario 5: The transfer was successful, and the allowance has been updated.
+    token.unpause({"from": owner})
+    assert not token.paused()
+
+    token.mint(approved_account, amount, {'from': owner})
+
+    tx = token.transferFrom(approved_account, owner, amount, {'from': lp})
+    assert "Transfer" in tx.events
+    assert token.balanceOf(approved_account) == 0
+    assert token.balanceOf(owner) == amount
