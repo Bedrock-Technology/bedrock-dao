@@ -168,3 +168,37 @@ def test_transferFrom(setup_contracts, owner, approved_account, zero_address):
     assert "Transfer" in tx.events
     assert token.balanceOf(approved_account) == 0
     assert token.balanceOf(owner) == amount
+
+
+def test_burn(setup_contracts, owner, zero_address):
+    token = setup_contracts[0]
+
+    amount = 1e18
+
+    lp = accounts[2]
+
+    # Scenario 1: Can't burn from the zero address.
+    with brownie.reverts("ERC20: burn from the zero address"):
+        token.burn(amount, {'from': zero_address})
+
+    # Scenario 2: Cannot transfer an amount exceeding the balance.
+    with brownie.reverts("ERC20: burn amount exceeds balance"):
+        token.burn(amount, {'from': lp})
+
+    # Scenario 3: Can't burn when the contract is paused.
+    token.pause({"from": owner})
+    assert token.paused()
+    with brownie.reverts("Pausable: paused"):
+        token.burn(amount, {'from': lp})
+
+    # Scenario 4: The burn was successful, and the allowance has been updated.
+    token.unpause({"from": owner})
+    assert not token.paused()
+    token.mint(lp, amount, {'from': owner})
+    assert token.balanceOf(lp) == amount
+
+    tx = token.burn(amount, {'from': lp})
+    assert "Transfer" in tx.events
+    assert token.balanceOf(lp) == 0
+    assert token.totalSupply() == 0
+
