@@ -14,18 +14,20 @@ def test_distributeRewards(setup_contracts, owner, approved_account, floorToWeek
 
     week = daysInSeconds(7)
 
+    current_week = gauge_controller.timeTotal()
+
     scenarios = [
         # Scenario 1: Rewards can't be distributed while the contract is paused.
-        {"RevertMsg": "Pausable: paused", "RewardsDistributed": 0},
+        {"RevertMsg": "Pausable: paused", "RewardsDistributed": 0, "NextRewardTime": 0},
 
         # Scenario 2: Rewards will not be distributed if the given gauge's relative weight is zero.
-        {"RevertMsg": "", "RewardsDistributed": 0},
+        {"RevertMsg": "", "RewardsDistributed": 0, "NextRewardTime": current_week},
 
         # Scenario 3: Rewards may not be distributed more than once per week.
-        {"RevertMsg": "Invalid reward distribution", "RewardsDistributed": 0},
+        {"RevertMsg": "Invalid reward distribution", "RewardsDistributed": 0, "NextRewardTime": current_week},
 
         # Scenario 4: Rewards are normally distributed, and the RewardsDistributed events are emitted.
-        {"RevertMsg": "", "RewardsDistributed": 2},
+        {"RevertMsg": "", "RewardsDistributed": 2, "NextRewardTime": current_week + week},
     ]
 
     lock_end = floorToWeek(chain.time()) + 5 * week
@@ -44,7 +46,6 @@ def test_distributeRewards(setup_contracts, owner, approved_account, floorToWeek
             cashier.unpause({"from": owner})
             assert not cashier.paused()
         elif rvt_msg == "Invalid reward distribution":
-            cashier.distributeRewards(penpie_adapter, {'from': oracle})
             with brownie.reverts(rvt_msg):
                 cashier.distributeRewards(penpie_adapter, {'from': oracle})
 
@@ -54,9 +55,14 @@ def test_distributeRewards(setup_contracts, owner, approved_account, floorToWeek
             # Mint rewards
             token.mint(approved_account, amount, {"from": owner})
             token.approve(cashier, amount, {"from": approved_account})
+        else:
+               tx = cashier.distributeRewards(penpie_adapter, {'from': oracle})
+               if s['RewardsDistributed'] == 0:
+                   assert "RewardsDistributed" not in tx.events
+               else:
+                assert len(tx.events['RewardsDistributed']) == s['RewardsDistributed']
+               assert token.balanceOf(cashier) == 0
+        assert cashier.nextRewardTime(penpie_adapter) == s['NextRewardTime']
 
-    else:
-           tx = cashier.distributeRewards(penpie_adapter, {'from': oracle})
-           assert len(tx.events['RewardsDistributed']) == s['RewardsDistributed']
-           assert token.balanceOf(cashier) == 0
+
 
