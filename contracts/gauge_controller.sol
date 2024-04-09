@@ -434,7 +434,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Total weight
      */
     function getTotalWeight() external view returns (uint256) {
-        return totalWtAtTime[_getWeek(block.timestamp)];
+        return _getTotalWeightReadOnly(block.timestamp);
     }
 
     /**
@@ -443,7 +443,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Total weight
      */
     function getTotalWeight(uint256 _time) external view returns (uint256) {
-        return totalWtAtTime[_getWeek(_time)];
+        return _getTotalWeightReadOnly(_time);
     }
 
     /**
@@ -452,7 +452,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Sum of gauge weights
      */
     function getWeightsSumPerType(uint128 _gType) external view returns (uint256) {
-        return typePoints[_gType][_getWeek(block.timestamp)].bias;
+        return _getSumWeightReadOnly(_gType, block.timestamp);
     }
 
     /**
@@ -462,7 +462,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Sum of gauge weights
      */
     function getWeightsSumPerType(uint128 _gType, uint256 _time) external view returns (uint256) {
-        return typePoints[_gType][_getWeek(_time)].bias;
+        return _getSumWeightReadOnly(_gType, _time);
     }
 
     /**
@@ -841,11 +841,55 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     /**
+     *  @notice Returns the sum of gauge weights for the same type
+     *  @param _gType Type id.
+     *  @param _time Timestamp.
+     *  @return Sum of weights
+     */
+    function _getSumWeightReadOnly(uint128 _gType, uint256 _time)
+    private
+    view
+    returns (uint256)
+    {
+        uint256 sumWt = 0;
+        address[] memory gaugeList = gauges;
+        for (uint16 i = 0; i < gaugeList.length; i++) {
+            address gAddr = gaugeList[i];
+            if (_getGaugeType(gAddr) == _gType) {
+                sumWt += _getGaugeWeightReadOnly(gAddr, _time);
+            }
+        }
+        return sumWt;
+    }
+
+    /**
+     *  @notice Returns the total weight based on the last check-pointed data.
+     *  @param _time Timestamp.
+     *  @return Total weight based on the Week start of the provided time.
+     */
+    function _getTotalWeightReadOnly(uint256 _time)
+    private
+    view
+    returns (uint256)
+    {
+        uint256 totalWt = 0;
+        address[] memory gaugeList = gauges;
+        for (uint16 i = 0; i < gaugeList.length; i++) {
+            address gAddr = gaugeList[i];
+            uint128 gType = _getGaugeType(gAddr);
+            uint256 gaugeWt = _getGaugeWeightReadOnly(gAddr, _time);
+            uint256 typeWt = _getTypeWeightReadOnly(gType, _time);
+            totalWt += gaugeWt * typeWt;
+        }
+        return totalWt;
+    }
+
+    /**
      *  @notice Get Gauge relative weight (not more than 1.0) normalized to 1e18
      *         (e.g. 1.0 == 1e18). Inflation which will be received by it is
      *         inflation_rate * relative_weight / 1e18
      *  @param _gAddr Gauge address
-     *  @param _time Relative weight at the specified timestamp in the past or present
+     *  @param _time Timestamp
      *  @return Value of relative weight normalized to 1e18
      */
     function _gaugeRelativeWeight(address _gAddr, uint256 _time)
@@ -853,13 +897,11 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         view
         returns (uint256)
     {
-        uint128 gType = _getGaugeType(_gAddr);
-        uint256 t = _getWeek(_time);
-        uint256 totalWeight = totalWtAtTime[t];
-
+        uint256 totalWeight = _getTotalWeightReadOnly(_time);
         if (totalWeight > 0) {
-            uint256 typeWeight = typeWtAtTime[gType][t];
-            uint256 gaugeWeight = gaugePoints[_gAddr][t].bias;
+            uint128 gType = _getGaugeType(_gAddr);
+            uint256 typeWeight = _getTypeWeightReadOnly(gType, _time);
+            uint256 gaugeWeight = _getGaugeWeightReadOnly(_gAddr, _time);
             return (MULTIPLIER * typeWeight * gaugeWeight) / totalWeight;
         }
         return 0;
