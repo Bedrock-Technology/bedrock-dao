@@ -416,17 +416,8 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Type weight
      */
     function getTypeWeight(uint128 _gType) external view returns (uint256) {
-        return typeWtAtTime[_gType][_getWeek(block.timestamp)];
-    }
-
-    /**
-     *  @notice Get type weight
-     *  @param _gType Type id
-     *  @param _time Timestamp
-     *  @return Type weight
-     */
-    function getTypeWeight(uint128 _gType, uint256 _time) external view returns (uint256) {
-        return typeWtAtTime[_gType][_getWeek(_time)];
+        if (_gType >= MAX_NUM) return 0;
+        return typeWtAtTime[_gType][lastTypeWtTime[_gType]];
     }
 
     /**
