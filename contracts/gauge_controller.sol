@@ -416,8 +416,17 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Type weight
      */
     function getTypeWeight(uint128 _gType) external view returns (uint256) {
-        if (_gType >= MAX_NUM) return 0;
-        return typeWtAtTime[_gType][lastTypeWtTime[_gType]];
+        return _getTypeWeightReadOnly(_gType, block.timestamp);
+    }
+
+    /**
+     *  @notice Get type weight
+     *  @param _gType Type id
+     *  @param _time Timestamp
+     *  @return Type weight
+     */
+    function getTypeWeight(uint128 _gType, uint256 _time) external view returns (uint256) {
+        return _getTypeWeightReadOnly(_gType, _time);
     }
 
     /**
@@ -764,11 +773,10 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     /**
-     *  @notice Returns the gauge weight based on the last check-pointed data
+     *  @notice Returns the gauge weight based on the last check-pointed data.
      *  @param _gAddr Address of the gauge.
-     *  @param _time Required timestamp.
-     *  @dev Returns weight based on the Week start of the provided time
-     *  @return Returns the weight of the gauge.
+     *  @param _time Timestamp.
+     *  @return Gauge weight based on the Week start of the provided time.
      */
     function _getGaugeWeightReadOnly(address _gAddr, uint256 _time)
         private
@@ -804,6 +812,32 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         }
 
         return pt.bias;
+    }
+
+    /**
+     *  @notice Returns the type weight based on the last check-pointed data.
+     *  @param _gType Type id.
+     *  @param _time Timestamp.
+     *  @return Type weight based on the Week start of the provided time.
+     */
+    function _getTypeWeightReadOnly(uint128 _gType, uint256 _time)
+    private
+    view
+    returns (uint256)
+    {
+        // No type wt has been scheduled yet
+        if (_gType >= MAX_NUM) return 0;
+        uint256 t = lastTypeWtTime[_gType];
+        if (t == 0) return 0;
+
+        // Type wt is check-pointed for the timestamp
+        _time = _getWeek(_time);
+        if (_time <= t) {
+            return typeWtAtTime[_gType][_time];
+        }
+
+        // Type wt check-pointed gaps exist.
+        return typeWtAtTime[_gType][t];
     }
 
     /**
