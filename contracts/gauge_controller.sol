@@ -479,7 +479,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 }
                 t += WEEK;
                 uint256 dBias = pt.slope * WEEK;
-                if (pt.bias > dBias && pt.bias - dBias > sumW0) {
+                if (pt.bias > sumW0 + dBias) {
                     pt.bias -= dBias;
                     pt.slope -= typeSlopeChanges[_gType][t];
                 } else {
@@ -566,7 +566,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 }
                 t += WEEK;
                 uint256 dBias = pt.slope * WEEK;
-                if (pt.bias > dBias && pt.bias- dBias > w0) {
+                if (pt.bias > w0 + dBias) {
                     pt.bias -= dBias;
                     pt.slope -= gaugeSlopeChanges[_gAddr][t];
                 } else {
