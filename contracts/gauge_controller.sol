@@ -363,7 +363,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Gauge weight
      */
     function getGaugeWeight(address _gAddr) external view returns (uint256) {
-        return gaugePoints[_gAddr][_getWeek(block.timestamp)].bias;
+        return _getGaugeWeightReadOnly(_gAddr, block.timestamp);
     }
 
     /**
