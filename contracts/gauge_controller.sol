@@ -680,6 +680,8 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *  @return Gauge weight
      */
     function _getWeight(address _gAddr) private returns (uint256) {
+        _getGaugeBaseWeight(_gAddr);
+
         uint256 t = gaugeData[_gAddr].wtUpdateTime;
         if (t > 0) {
             uint256 w0 = gaugeData[_gAddr].w0;
@@ -740,6 +742,9 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         uint256 oldSum = _getSum(gType);
         uint256 totalWeight = _getTotal();
         uint256 nextTime = _getWeek(block.timestamp + WEEK);
+
+        timeGaugeBaseWt[_gAddr] = nextTime;
+        gaugeBaseWtAtTime[_gAddr][nextTime] = _newW0;
 
         uint256 newGaugeWeight = oldGaugeWeight + _newW0 - oldW0;
         gaugePoints[_gAddr][nextTime].bias = newGaugeWeight;
