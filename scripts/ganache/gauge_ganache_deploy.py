@@ -24,12 +24,7 @@ def main():
 
     print(f'contract owner account: {owner.address}\n')
 
-    token_contract = BedrockDAO.deploy(
-            {'from': deployer})
-
-    token_proxy =  TransparentUpgradeableProxy.deploy(
-            token_contract, deployer, b'',
-            {'from': deployer})
+    token_contract = BedrockDAO.deploy(owner, owner, owner, {'from': deployer})
 
     ve_contract = VotingEscrow.deploy(
             {'from': deployer})
@@ -46,11 +41,8 @@ def main():
             gauge_contract, deployer, b'',
             {'from': deployer})
 
-    transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
-    transparent_token.initialize({'from': owner})
-
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
-    transparent_ve.initialize( "voting-escrow BRT", "veBRT", transparent_token, {'from': owner})
+    transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_contract, {'from': owner})
 
     print("VE ADDRESS:", transparent_ve)
 
@@ -71,9 +63,9 @@ def main():
 
     for voter in voters: 
         print("minting BRT token to: ", voter)
-        transparent_token.mint(voter, 100 * 1e18, {'from':owner})
+        token_contract.mint(voter, 100 * 1e18, {'from':owner})
         print("Approving BRT token to veBRT")
-        transparent_token.approve(transparent_ve, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':voter})
+        token_contract.approve(transparent_ve, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':voter})
         print("lock 100 * 1e18 value of account", voter, "for 300 days:")
         transparent_ve.createLock(100 * 1e18, chain.time() + 86400 * 300, {'from': voter})
 

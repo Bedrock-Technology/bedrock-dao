@@ -16,12 +16,7 @@ def main():
 
     print(f'contract owner account: {owner.address}\n')
 
-    token_contract = BedrockDAO.deploy(
-            {'from': deployer})
-
-    token_proxy =  TransparentUpgradeableProxy.deploy(
-            token_contract, deployer, b'',
-            {'from': deployer})
+    token_contract = BedrockDAO.deploy(owner, owner, owner, {'from': deployer})
 
     lp_token_contract = BedrockDAO.deploy(
             {'from': deployer})
@@ -41,13 +36,10 @@ def main():
     transparent_lp_token = Contract.from_abi("BedrockDAO", lp_token_proxy.address, BedrockDAO.abi)
     transparent_lp_token.initialize({'from': owner})
 
-    transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
-    transparent_token.initialize({'from': owner})
-
     transparent_staking = Contract.from_abi("LPStaking", staking_proxy.address, LPStaking.abi)
-    transparent_staking.initialize(transparent_lp_token, transparent_token, {'from': owner})
+    transparent_staking.initialize(transparent_lp_token, token_contract, {'from': owner})
 
-    print("BRT ADDRESS:", transparent_token)
+    print("BRT ADDRESS:", token_contract)
     print("LP TOKEN ADDRESS:", lp_token_contract)
     print("LP STAKING ADDRESS:", transparent_staking)
 
@@ -59,7 +51,7 @@ def main():
     transparent_staking.deposit(100*1e18, {'from':owner})
 
     print("mint rewards to transparent_staking")
-    transparent_token.mint(transparent_staking, 200 * 1e18, {'from':owner})
+    token_contract.mint(transparent_staking, 200 * 1e18, {'from':owner})
 
     print("calling updateReward()")
     transparent_staking.updateReward({'from':owner})
@@ -67,10 +59,10 @@ def main():
     print('''transparent_staking.getPendingReward(owner)''', transparent_staking.getPendingReward(owner))
     print("chain.mine(100)", chain.mine(100))
     print('''transparent_staking.getPendingReward(owner)''', transparent_staking.getPendingReward(owner))
-    print("reward balance:", transparent_token.balanceOf(owner))
+    print("reward balance:", token_contract.balanceOf(owner))
     print("withdraw lp:", transparent_staking.userInfo(owner)[1], transparent_staking.withdraw(transparent_staking.userInfo(owner)[1], {"from":owner}))
     print("havest after withdraw",transparent_staking.havest(transparent_staking.getPendingReward(owner), {'from':owner}))
-    print("reward balance:", transparent_token.balanceOf(owner))
+    print("reward balance:", token_contract.balanceOf(owner))
     print("LP balance:", transparent_lp_token.balanceOf(owner))
 
     print('''transparent_staking.getPendingReward(owner)''', transparent_staking.getPendingReward(owner))
@@ -83,5 +75,5 @@ def main():
     print('''transparent_staking.getPendingReward(owner)''', transparent_staking.getPendingReward(owner))
     print("havest")
     transparent_staking.havest(transparent_staking.getPendingReward(owner), {'from':owner})
-    print("reward balance:", transparent_token.balanceOf(owner))
+    print("reward balance:", token_contract.balanceOf(owner))
 

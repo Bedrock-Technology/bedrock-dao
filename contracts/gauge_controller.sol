@@ -160,15 +160,15 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     /*
-     *  @notice Change weight of gauge `_gAddr` to `_weight`
-     *  @param _gAddr `GaugeController` contract address
-     *  @param _weight New Gauge weight
+     *  @notice Change the base weight of a gauge
+     *  @param _gAddr Gauge address
+     *  @param _newW0 New base weight for the gauge
      */
-    function changeGaugeWeight(address _gAddr, uint256 _weight)
+    function changeGaugeBaseWeight(address _gAddr, uint256 _newW0)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        _changeGaugeWeight(_gAddr, _weight);
+        _changeGaugeBaseWeight(_gAddr, _newW0);
     }
 
     /**
@@ -595,6 +595,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     function _getSum(uint128 _gType) private returns (uint256) {
         uint256 t = timeSum[_gType];
         if (t > 0) {
+            uint256 sumW0 = _getBaseWeight(_gType);
             Point memory pt = typePoints[_gType][t];
             for (uint8 i = 0; i < 100; i++) {
                 if (t > block.timestamp) {
@@ -602,11 +603,11 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 }
                 t += WEEK;
                 uint256 dBias = pt.slope * WEEK;
-                if (pt.bias > dBias) {
+                if (pt.bias > sumW0 + dBias) {
                     pt.bias -= dBias;
                     pt.slope -= typeSlopeChanges[_gType][t];
                 } else {
-                    pt.bias = 0;
+                    pt.bias = sumW0;
                     pt.slope = 0;
                 }
                 typePoints[_gType][t] = pt;
@@ -615,6 +616,23 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
             return pt.bias;
         }
         return 0;
+    }
+
+    /**
+     *  @notice Calculate the total gauge base weight of the given gauge type
+     *  @param _gType Gauge type id
+     *  @return Total gauge base weight of the given gauge type
+     */
+    function _getBaseWeight(uint128 _gType) private view returns (uint256) {
+        uint256 sumW0 = 0;
+        address[] memory gaugeList = gauges;
+        for (uint16 i = 0; i < gaugeList.length; i++) {
+            address gAddr = gaugeList[i];
+            if (_getGaugeType(gAddr) == _gType) {
+                sumW0 += gaugeData[gAddr].w0;
+            }
+        }
+        return sumW0;
     }
 
     /**
@@ -630,7 +648,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         }
 
         // Updating type related data
-        for (uint8 i = 0; i < numTypes; i++) {
+        for (uint16 i = 0; i < numTypes; i++) {
             _getSum(i);
             _getTypeWeight(i);
         }
@@ -664,6 +682,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     function _getWeight(address _gAddr) private returns (uint256) {
         uint256 t = gaugeData[_gAddr].wtUpdateTime;
         if (t > 0) {
+            uint256 w0 = gaugeData[_gAddr].w0;
             Point memory pt = gaugePoints[_gAddr][t];
             for (uint8 i = 0; i < 100; i++) {
                 if (t > block.timestamp) {
@@ -671,11 +690,11 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
                 }
                 t += WEEK;
                 uint256 dBias = pt.slope * WEEK;
-                if (pt.bias > dBias) {
+                if (pt.bias > w0 + dBias) {
                     pt.bias -= dBias;
                     pt.slope -= gaugeSlopeChanges[_gAddr][t];
                 } else {
-                    pt.bias = 0;
+                    pt.bias = w0;
                     pt.slope = 0;
                 }
                 gaugePoints[_gAddr][t] = pt;
@@ -709,11 +728,11 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     /**
-     *  @notice Change gauge weight
+     *  @notice Change the base weight of a gauge
      *  @param _gAddr Gauge Address
-     *  @param _weight for gauge.
+     *  @param _newW0 New base weight for the gauge
      */
-    function _changeGaugeWeight(address _gAddr, uint256 _weight) private {
+    function _changeGaugeBaseWeight(address _gAddr, uint256 _newW0) private {
         uint128 gType = _getGaugeType(_gAddr);
         uint256 oldGaugeWeight = _getWeight(_gAddr);
         uint256 oldW0 = gaugeData[_gAddr].w0;
@@ -722,18 +741,19 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         uint256 totalWeight = _getTotal();
         uint256 nextTime = _getWeek(block.timestamp + WEEK);
 
-        gaugePoints[_gAddr][nextTime].bias = oldGaugeWeight + _weight - oldW0;
+        uint256 newGaugeWeight = oldGaugeWeight + _newW0 - oldW0;
+        gaugePoints[_gAddr][nextTime].bias = newGaugeWeight;
         gaugeData[_gAddr].wtUpdateTime = nextTime;
-        gaugeData[_gAddr].w0 = _weight;
+        gaugeData[_gAddr].w0 = _newW0;
 
-        uint256 newSum = oldSum + _weight - oldGaugeWeight;
+        uint256 newSum = oldSum + _newW0 - oldW0;
         typePoints[gType][nextTime].bias = newSum;
         timeSum[gType] = nextTime;
 
         totalWeight += (newSum - oldSum) * typeWeight;
         totalWtAtTime[nextTime] = totalWeight;
         timeTotal = nextTime;
-        emit GaugeWeightUpdated(_gAddr, block.timestamp, _weight, totalWeight);
+        emit GaugeWeightUpdated(_gAddr, block.timestamp, _newW0, newGaugeWeight, totalWeight);
     }
 
     /**
@@ -1015,10 +1035,11 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         uint256 weight,
         uint256 totalWeight
     );
-    event GaugeWeightUpdated(
+    event GaugeBaseWeightUpdated(
         address indexed gAddr,
         uint256 time,
-        uint256 weight,
+        uint256 baseWeight,
+        uint256 gaugeWeight,
         uint256 totalWeight
     );
     event GaugeVoted(

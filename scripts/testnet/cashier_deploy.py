@@ -34,10 +34,7 @@ def main(owner="holesky-owner", deployer="holesky-deployer", approved_account="h
     """
     Testnet BRT Contract
     """
-    token_proxy = TransparentUpgradeableProxy.at(
-        dep_contracts[dep_network]["token"])
-    
-    transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
+    token_contract = BedrockDAO.at(dep_contracts[dep_network]["token"])
     
     """
     Testnet Gauge Controller Contract
@@ -59,6 +56,6 @@ def main(owner="holesky-owner", deployer="holesky-deployer", approved_account="h
             {'from': deployer}, publish_source=shouldPublishSource)
     
     transparent_cashier = Contract.from_abi("Cashier", cashier_proxy.address, Cashier.abi)
-    transparent_cashier.initialize(transparent_token, 100000 * 1e18, transparent_gauge, approved_account, {'from': owner})
+    transparent_cashier.initialize(token_contract, 100000 * 1e18, transparent_gauge, approved_account, {'from': owner})
 
     print("CASHIER ADDRESS:", transparent_cashier)
