@@ -203,6 +203,9 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
             timeTotal = nextTime;
 
             gaugePoints[_gAddr][nextTime].bias = _weight;
+
+            timeGaugeBaseWt[_gAddr] = nextTime;
+            gaugeBaseWtAtTime[_gAddr][nextTime] = _weight;
         }
 
         if (timeSum[_gType] == 0) {
