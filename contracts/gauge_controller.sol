@@ -85,6 +85,12 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     // gauge_addr -> time -> slope
     mapping(address => mapping(uint256 => uint256)) public gaugeSlopeChanges;
 
+    // gauge_addr -> last scheduled time for base weight
+    mapping(address => uint256) public timeGaugeBaseWt;
+    // gauge_addr -> time -> base weight
+    mapping(address => mapping(uint256 => uint256)) public gaugeBaseWtAtTime;
+
+
     // Track gauge name
     mapping(uint128 => string) public typeNames;
     // type_id -> time -> Point
@@ -383,9 +389,8 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      */
     function getUserVotesWtForGauge(address _gAddr) external view returns (uint256) {
         uint256 wt = _getGaugeWeightReadOnly(_gAddr, block.timestamp);
-        uint256 w0 = gaugeData[_gAddr].w0;
-        uint256 uwt = (wt > w0) ? (wt - w0) : 0;
-        return uwt;
+        uint256 w0 = _getGaugeBaseWeightReadOnly(_gAddr, block.timestamp);
+        return wt - w0;
     }
 
     /**
@@ -396,18 +401,27 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      */
     function getUserVotesWtForGauge(address _gAddr, uint256 _time) external view returns (uint256) {
         uint256 wt = _getGaugeWeightReadOnly(_gAddr, _time);
-        uint256 w0 = gaugeData[_gAddr].w0;
-        uint256 uwt = (wt > w0) ? (wt - w0) : 0;
-        return uwt;
+        uint256 w0 = _getGaugeBaseWeightReadOnly(_gAddr, _time);
+        return wt - w0;
+    }
+
+    /**
+     *  @notice Get current gauge base weight
+     *  @param _gAddr Gauge address
+     *  @return Gauge base weight
+     */
+    function getGaugeBaseWeight(address _gAddr)  external  view returns (uint256) {
+        return _getGaugeBaseWeightReadOnly(_gAddr, block.timestamp);
     }
 
     /**
      *  @notice Get gauge base weight
      *  @param _gAddr Gauge address
+     *  @param _time Timestamp
      *  @return Gauge base weight
      */
-    function getGaugeBaseWeight(address _gAddr)  external  view returns (uint256) {
-        return gaugeData[_gAddr].w0;
+    function getGaugeBaseWeight(address _gAddr, uint256 _time)  external  view returns (uint256) {
+        return _getGaugeBaseWeightReadOnly(_gAddr, _time);
     }
 
     /**
@@ -482,6 +496,15 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     /**
+     *  @notice Get last gauge base weight schedule time
+     *  @param _gAddr Gauge address
+     *  @return Last schedule time
+     */
+    function getLastGaugeBaseWtScheduleTime(address _gAddr) external view returns (uint256) {
+        return timeGaugeBaseWt[_gAddr];
+    }
+
+    /**
      *  @notice Get last type weight schedule time
      *  @param _gType Gauge type
      *  @return Last schedule time
@@ -516,6 +539,29 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      *
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
+
+    /**
+     *  @notice Fill historic gauge base weight week-over-week for missed check-points
+     *          and return the gauge base weight for the future week
+     *  @param _gAddr Address of the gauge.
+     *  @return Gauge base weight
+     */
+    function _getGaugeBaseWeight(address _gAddr) private returns (uint256) {
+        uint256 t = timeGaugeBaseWt[_gAddr];
+        if (t > 0) {
+            uint256 w = gaugeBaseWtAtTime[_gAddr][t];
+            for (uint8 i = 0; i < 100; i++) {
+                if (t > block.timestamp) {
+                    break;
+                }
+                t += WEEK;
+                gaugeBaseWtAtTime[_gAddr][t] = w;
+            }
+            timeGaugeBaseWt[_gAddr] = t;
+            return w;
+        }
+        return 0;
+    }
 
     /**
      *  @notice Fill historic type weights week-over-week for missed check-points
@@ -812,6 +858,29 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         }
 
         return pt.bias;
+    }
+
+    /**
+     *  @notice Returns the gauge base weight based on the last check-pointed data.
+     *  @param _gAddr Address of the gauge.
+     *  @param _time Timestamp.
+     *  @return Gauge base weight based on the Week start of the provided time.
+     */
+    function _getGaugeBaseWeightReadOnly(address _gAddr, uint256 _time)
+    private
+    view
+    returns (uint256)
+    {
+        uint256 t = timeGaugeBaseWt[_gAddr];
+        _time = _getWeek(_time);
+
+        // Gauge base wt is check-pointed for the timestamp
+        if (_time <= t) {
+            return gaugeBaseWtAtTime[_gAddr][_time];
+        }
+
+        // Gauge base wt check-pointed gaps exist.
+        return gaugeBaseWtAtTime[_gAddr][t];
     }
 
     /**
