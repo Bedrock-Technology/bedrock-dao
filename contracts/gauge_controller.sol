@@ -743,7 +743,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         uint256 oldW0 = gaugeData[_gAddr].w0;
         uint256 typeWeight = _getTypeWeight(gType);
         uint256 oldSum = _getSum(gType);
-        uint256 totalWeight = _getTotal();
+        uint256 oldTotalWeight = _getTotal();
         uint256 nextTime = _getWeek(block.timestamp + WEEK);
 
         timeGaugeBaseWt[_gAddr] = nextTime;
@@ -758,10 +758,10 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         typePoints[gType][nextTime].bias = newSum;
         timeSum[gType] = nextTime;
 
-        totalWeight += (newSum - oldSum) * typeWeight;
-        totalWtAtTime[nextTime] = totalWeight;
+        uint256 newTotalWeight = oldTotalWeight + newSum * typeWeight - oldSum * typeWeight;
+        totalWtAtTime[nextTime] = newTotalWeight;
         timeTotal = nextTime;
-        emit GaugeBaseWeightUpdated(_gAddr, block.timestamp, _newW0, newGaugeWeight, totalWeight);
+        emit GaugeBaseWeightUpdated(_gAddr, block.timestamp, _newW0, newGaugeWeight, newTotalWeight);
     }
 
     /**
