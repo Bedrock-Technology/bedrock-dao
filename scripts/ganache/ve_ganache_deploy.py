@@ -15,12 +15,7 @@ def main():
 
     print(f'contract owner account: {owner.address}\n')
 
-    token_contract = BedrockDAO.deploy(
-            {'from': deployer})
-
-    token_proxy =  TransparentUpgradeableProxy.deploy(
-            token_contract, deployer, b'',
-            {'from': deployer})
+    token_contract = BedrockDAO.deploy(owner, owner, owner, {'from': deployer})
 
     ve_contract = VotingEscrow.deploy(
             {'from': deployer})
@@ -29,21 +24,18 @@ def main():
             ve_contract, deployer, b'',
             {'from': deployer})
 
-    transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
-    transparent_token.initialize({'from': owner})
-
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
-    transparent_ve.initialize( "voting-escrow BRT", "veBRT", transparent_token, {'from': owner})
+    transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_contract, {'from': owner})
 
     print("VE ADDRESS:", transparent_ve)
 
     for i in range(2,4):
         account = accounts[i]
         print("ACCOUNT:", account)
-        print("""transparent_token.mint(account, 100 * 1e18, {'from':owner})""")
-        transparent_token.mint(account, 100 * 1e18, {'from':owner})
-        print("""transparent_token.approve(transparent_ve, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':account})""")
-        transparent_token.approve(transparent_ve, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':account})
+        print("""token_contract.mint(account, 100 * 1e18, {'from':owner})""")
+        token_contract.mint(account, 100 * 1e18, {'from':owner})
+        print("""token_contract.approve(transparent_ve, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':account})""")
+        token_contract.approve(transparent_ve, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, {'from':account})
         print("""transparent_ve.createLock(100 * 1e18, chain.time() + 86400 * 30, {'from': account})""")
         transparent_ve.createLock(100 * 1e18, chain.time() + 86400 * 30, {'from': account})
 

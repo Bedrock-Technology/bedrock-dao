@@ -10,9 +10,6 @@ shouldPublishSource = True
 priority_fee("80 gwei")
 def main(owner="holesky-owner", deployer="holesky-deployer"):
     
-    deps = project.load(  Path.home() / ".brownie" / "packages" / config["dependencies"][0])
-    TransparentUpgradeableProxy = deps.TransparentUpgradeableProxy
-
     owner = accounts.load(owner)
     deployer = accounts.load(deployer)
 
@@ -22,14 +19,6 @@ def main(owner="holesky-owner", deployer="holesky-deployer"):
     """
     Deploy BedrockDAO contract
     """
-    token_contract = BedrockDAO.deploy(
-            {'from': deployer}, publish_source=shouldPublishSource)
+    token_contract = BedrockDAO.deploy(owner, owner, owner, {'from': deployer}, publish_source=shouldPublishSource)
 
-    token_proxy = TransparentUpgradeableProxy.deploy(
-            token_contract, deployer, b'',
-            {'from': deployer}, publish_source=shouldPublishSource)
-    
-    transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
-    transparent_token.initialize({'from': owner})
-
-    print("BRT TOKEN ADDRESS:", transparent_token)
+    print("BRT TOKEN ADDRESS:", token_contract.address)

@@ -33,10 +33,7 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     """
     Testnet BRT Contract
     """
-    token_proxy = TransparentUpgradeableProxy.at(
-        dep_contracts[dep_network]["token"])
-    
-    transparent_token = Contract.from_abi("BedrockDAO", token_proxy.address, BedrockDAO.abi)
+    token_contract = BedrockDAO.at(dep_contracts[dep_network]["token"])
     
     """
     Testnet Gauge Controller Contract
@@ -73,19 +70,19 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     transparent_mock_bribe_manager.newPool(penpie_market2, chain.id, {'from': owner})
     transparent_mock_bribe_manager.newPool(penpie_market3, chain.id, {'from': owner})
 
-    isAllowed = transparent_mock_bribe_manager.allowedToken(transparent_token, {'from': owner})
+    isAllowed = transparent_mock_bribe_manager.allowedToken(token_contract, {'from': owner})
     if not isAllowed:
-        transparent_mock_bribe_manager.addAllowedTokens(transparent_token.address, {'from': owner})
+        transparent_mock_bribe_manager.addAllowedTokens(token_contract.address, {'from': owner})
     
     """
     Deploy penpie adapter contracts
     """
     
-    transparent_penpie_adapter1 = _deploy_gauge(penpie_market1, transparent_token, transparent_mock_bribe_manager,owner, deployer, TransparentUpgradeableProxy)
+    transparent_penpie_adapter1 = _deploy_gauge(penpie_market1, token_contract, transparent_mock_bribe_manager,owner, deployer, TransparentUpgradeableProxy)
     
-    transparent_penpie_adapter2 = _deploy_gauge(penpie_market2, transparent_token, transparent_mock_bribe_manager,owner, deployer, TransparentUpgradeableProxy)
+    transparent_penpie_adapter2 = _deploy_gauge(penpie_market2, token_contract, transparent_mock_bribe_manager,owner, deployer, TransparentUpgradeableProxy)
     
-    transparent_penpie_adapter3 = _deploy_gauge(penpie_market3, transparent_token, transparent_mock_bribe_manager,owner, deployer, TransparentUpgradeableProxy)
+    transparent_penpie_adapter3 = _deploy_gauge(penpie_market3, token_contract, transparent_mock_bribe_manager,owner, deployer, TransparentUpgradeableProxy)
 
     print("Gauge 1:", transparent_penpie_adapter1)
     print("Gauge 2:", transparent_penpie_adapter2)
