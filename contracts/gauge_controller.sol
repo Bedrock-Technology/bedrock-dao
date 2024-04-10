@@ -753,7 +753,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         totalWeight += (newSum - oldSum) * typeWeight;
         totalWtAtTime[nextTime] = totalWeight;
         timeTotal = nextTime;
-        emit GaugeWeightUpdated(_gAddr, block.timestamp, _newW0, newGaugeWeight, totalWeight);
+        emit GaugeBaseWeightUpdated(_gAddr, block.timestamp, _newW0, newGaugeWeight, totalWeight);
     }
 
     /**
