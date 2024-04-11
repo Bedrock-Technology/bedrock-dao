@@ -114,7 +114,7 @@ def test_addGauge(setup_contracts, owner, oracle, zero_address, w3):
     n_gauges = gauge_controller.nGauges()
     assert len(gauges) == 2
 
-    # Scenario 1: The execution will depend on the given parameters.
+    # Scenario 1: The execution will revert due to invalid inputs.
     scenarios = [
         # Sub-Scenario 1: Only an authorized operator can add gauge.
         {"gAddr": fake_gauge, "gType": 0, "weight": weight, "from": oracle,
@@ -175,6 +175,62 @@ def test_addGauge(setup_contracts, owner, oracle, zero_address, w3):
 
     assert gauge_controller.getLastGaugeWtScheduleTime(fake_gauge) == get_week(1)
     assert gauge_controller.getLastGaugeBaseWtScheduleTime(fake_gauge) == get_week(1)
+    assert gauge_controller.getLastSumWtScheduleTime(1) == get_week(1)
+    assert gauge_controller.getLastTotalWtScheduleTime() == get_week(1)
+
+
+def test_changeGaugeBaseWeight(setup_contracts, owner, oracle, zero_address, w3):
+    gauge_controller = setup_contracts[2]
+    fake_gauge = w3.eth.account.create(os.urandom(32)).address
+    weight = 300*1e18
+    gauges = gauge_controller.getGaugeList()
+    assert len(gauges) == 2
+
+    # Scenario 1: The execution will revert due to invalid inputs.
+    scenarios = [
+        # Sub-Scenario 1: Only the administrator can change gauge base weight.
+        {"gAddr": fake_gauge, "newW0": weight, "from": oracle,
+         "revert": ""},
+
+        # Sub-Scenario 2: Can't change the base weight of a gauge that hasn't been added.
+        {"gAddr": fake_gauge, "newW0": weight, "from": owner,
+         "revert": "Gauge not added"},
+    ]
+
+    for s in scenarios:
+        with brownie.reverts(s['revert']):
+            gauge_controller.changeGaugeBaseWeight(s['gAddr'], s['newW0'], {'from': s['from']})
+
+    # Scenario 2: Successfully changing the gauge base weight and the relative weight will take effect over time.
+    tx = gauge_controller.changeGaugeBaseWeight(gauges[0], weight, {'from': owner})
+    assert "GaugeBaseWeightUpdated" in tx.events
+
+    assert gauge_controller.gaugeRelativeWeight(gauges[0]) == 0
+    assert gauge_controller.gaugeRelativeWeight(gauges[0], get_week(1)) == 75*1e16
+    assert gauge_controller.gaugeRelativeWeight(gauges[0], get_week(2)) == 75*1e16
+
+    assert gauge_controller.getGaugeWeight(gauges[0]) == 0
+    assert gauge_controller.getGaugeWeight(gauges[0], get_week(1)) == 300*1e18
+    assert gauge_controller.getGaugeWeight(gauges[0], get_week(2)) == 300*1e18
+
+    assert gauge_controller.getGaugeWeight(gauges[0]) == 0
+    assert gauge_controller.getGaugeWeight(gauges[0], get_week(1)) == 300*1e18
+    assert gauge_controller.getGaugeWeight(gauges[0], get_week(2)) == 300*1e18
+
+    assert gauge_controller.getGaugeBaseWeight(gauges[0]) == 0
+    assert gauge_controller.getGaugeBaseWeight(gauges[0], get_week(1)) == 300*1e18
+    assert gauge_controller.getGaugeBaseWeight(gauges[0], get_week(2)) == 300*1e18
+
+    assert gauge_controller.getTotalWeight() == 0
+    assert gauge_controller.getTotalWeight(get_week(1)) == 400*1e18
+    assert gauge_controller.getTotalWeight(get_week(2)) == 400*1e18
+
+    assert gauge_controller.getWeightsSumPerType(0) == 0
+    assert gauge_controller.getWeightsSumPerType(0, get_week(1)) == 300*1e18
+    assert gauge_controller.getWeightsSumPerType(0, get_week(2)) == 300*1e18
+
+    assert gauge_controller.getLastGaugeWtScheduleTime(gauges[0]) == get_week(1)
+    assert gauge_controller.getLastGaugeBaseWtScheduleTime(gauges[0]) == get_week(1)
     assert gauge_controller.getLastSumWtScheduleTime(1) == get_week(1)
     assert gauge_controller.getLastTotalWtScheduleTime() == get_week(1)
 
