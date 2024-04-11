@@ -187,8 +187,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         require(_gType < nGaugeTypes, "Invalid gauge type");
         require(gaugeData[_gAddr].gType == 0, "Gauge already registered");  ///  @dev can't add the same gauge twice
         require(nGauges < MAX_NUM_GAUGES, "Can't add more gauges");
-        gauges.push(_gAddr);
-        nGauges += 1;
 
         uint256 nextTime = _getWeek(block.timestamp + WEEK);
 
@@ -216,6 +214,9 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
             wtUpdateTime: nextTime,
             w0: _weight
         });
+
+        gauges.push(_gAddr);
+        nGauges += 1;
 
         emit GaugeAdded(_gAddr, _gType, _weight);
     }

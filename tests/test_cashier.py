@@ -1,11 +1,13 @@
 from brownie import accounts, chain
 import brownie
 
+from tests.utils import get_week
+
 
 def test_distributeRewards(setup_contracts, owner, approved_account, floorToWeek, daysInSeconds):
     token, voting_escrow, gauge_controller, penpie_adapter, cashier = (
         setup_contracts[0], setup_contracts[1], setup_contracts[2], setup_contracts[3],
-        setup_contracts[6])
+        setup_contracts[7])
 
     amount = cashier.globalWeekEmission()
 
@@ -66,60 +68,59 @@ def test_distributeRewards(setup_contracts, owner, approved_account, floorToWeek
 
 
 def test_currentRewards(setup_contracts, owner, approved_account, floorToWeek, daysInSeconds):
-    token, voting_escrow, gauge_controller, penpie_adapter, cashier = (
-        setup_contracts[0], setup_contracts[1], setup_contracts[2], setup_contracts[3],
-        setup_contracts[6])
+    token, voting_escrow, gauge_controller, penpie_adapter1, penpie_adapter2, cashier = (
+        setup_contracts[0], setup_contracts[1], setup_contracts[2], setup_contracts[3], setup_contracts[4],
+        setup_contracts[7])
 
     amount = cashier.globalWeekEmission()
+
+    penpie_adapters = [penpie_adapter1, penpie_adapter2]
 
     lp = accounts[2]
     oracle = accounts[4]
 
     week = daysInSeconds(7)
 
-    current_week = gauge_controller.timeTotal()
+    start_week = get_week(0)
 
-    scenarios = [
-        # Scenario 1: No current rewards when no vote weight is in effect.
-        {"CurrentRewards": 0, "NextRewardTime": 0, "GaugeRelativeWeight": 0},
-
-        # Scenario 2: No additional current rewards if they have already been distributed.
-        {"CurrentRewards": 0, "NextRewardTime": current_week + week, "GaugeRelativeWeight": 1e18},
-
-        # Scenario 3: Current rewards account only for the relative weight in the current week,
-        # despite existing distribution gaps.
-        {"CurrentRewards": amount, "NextRewardTime": current_week + week, "GaugeRelativeWeight": 1e18},
-    ]
-
-    lock_end = floorToWeek(chain.time()) + 5 * week
+    lock_end = get_week(5)
     token.mint(lp, amount, {"from": owner})
     token.approve(voting_escrow, amount, {"from": lp})
     voting_escrow.createLock(amount, lock_end, {"from": lp})
-    gauge_controller.voteForGaugeWeight(penpie_adapter, gauge_controller.PREC(), {'from': lp})
+    gauge_controller.voteForGaugeWeight(penpie_adapter1, gauge_controller.PREC()/2, {'from': lp})
+    gauge_controller.voteForGaugeWeight(penpie_adapter2, gauge_controller.PREC()/2, {'from': lp})
 
-    for i, s in enumerate(scenarios):
-        if i == 0:
-            chain.sleep(week)
-        elif i == 1:
-            token.mint(approved_account, amount, {"from": owner})
-            token.approve(cashier, amount, {"from": approved_account})
-            tx = cashier.distributeRewards(penpie_adapter, {'from': oracle})
-            assert len(tx.events['RewardsDistributed']) == 2
-            assert token.balanceOf(approved_account) == 0
-        else:
-            for _ in range(3):
-                token.mint(approved_account, amount, {"from": owner})
-                token.approve(cashier, amount, {"from": approved_account})
-                chain.sleep(week)
-                gauge_controller.checkpointGauge(penpie_adapter, {"from": oracle})
+    # Scenario 1: No current rewards when no vote weight is in effect.
+    for penpie_adapter in penpie_adapters:
+        assert gauge_controller.gaugeRelativeWeight(penpie_adapter) == 0
+        assert cashier.currentRewards(penpie_adapter) == 0
+    chain.sleep(week)
 
-        assert cashier.currentRewards(penpie_adapter) == s['CurrentRewards']
-        assert cashier.nextRewardTime(penpie_adapter) == s['NextRewardTime']
-        assert gauge_controller.gaugeRelativeWeight(penpie_adapter) == s['GaugeRelativeWeight']
+    # Scenario 2: No additional current rewards if they have already been distributed.
+    token.mint(approved_account, amount, {"from": owner})
+    token.approve(cashier, amount, {"from": approved_account})
 
+    for penpie_adapter in penpie_adapters:
+        assert gauge_controller.gaugeRelativeWeight(penpie_adapter) == 5*1e17
+        tx = cashier.distributeRewards(penpie_adapter, {'from': oracle})
+        assert len(tx.events['RewardsDistributed']) == 2
+        assert cashier.currentRewards(penpie_adapter) == 0
+        assert cashier.nextRewardTime(penpie_adapter) == start_week + 2 * week
+    assert token.balanceOf(approved_account) == 0
+
+    # Scenario 3: Current rewards account only for the relative weight in the current week,
+    # despite existing distribution gaps.
+    for _ in range(4):
+        token.mint(approved_account, amount, {"from": owner})
+        token.approve(cashier, amount, {"from": approved_account})
+        chain.sleep(week)
+    for penpie_adapter in penpie_adapters:
+        assert gauge_controller.gaugeRelativeWeight(penpie_adapter) == 5*1e17
+        assert cashier.currentRewards(penpie_adapter) == amount/2
+        assert cashier.nextRewardTime(penpie_adapter) == start_week + 2 * week
 
 def test_setGlobalEmissionRate(setup_contracts, owner):
-    cashier = setup_contracts[6]
+    cashier = setup_contracts[7]
 
     amount = cashier.globalWeekEmission()
 

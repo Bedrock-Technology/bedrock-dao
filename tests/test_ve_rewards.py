@@ -3,7 +3,7 @@ import brownie
 
 
 def test_claim(setup_contracts, owner, floorToWeek, daysInSeconds):
-    token, voting_escrow, ve_rewards = setup_contracts[0], setup_contracts[1], setup_contracts[5]
+    token, voting_escrow, ve_rewards = setup_contracts[0], setup_contracts[1], setup_contracts[6]
     amount = 100e18
     lp = accounts[2]
     oracle = accounts[4]
@@ -74,7 +74,7 @@ def test_claim(setup_contracts, owner, floorToWeek, daysInSeconds):
 
 
 def test_updateReward(setup_contracts, owner, floorToWeek, daysInSeconds):
-    token, voting_escrow, ve_rewards = setup_contracts[0], setup_contracts[1], setup_contracts[5]
+    token, voting_escrow, ve_rewards = setup_contracts[0], setup_contracts[1], setup_contracts[6]
     amount = 100e18
     oracle = accounts[4]
     current_week = floorToWeek(chain.time())
@@ -105,7 +105,7 @@ def test_updateReward(setup_contracts, owner, floorToWeek, daysInSeconds):
 
 
 def test_getPendingReward(setup_contracts, owner, floorToWeek, daysInSeconds):
-    token, voting_escrow, ve_rewards = setup_contracts[0], setup_contracts[1], setup_contracts[5]
+    token, voting_escrow, ve_rewards = setup_contracts[0], setup_contracts[1], setup_contracts[6]
     amount = voting_escrow.MAXTIME()
     lp1 = accounts[2]
     lp2 = accounts[3]

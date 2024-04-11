@@ -56,6 +56,58 @@ def test_addType(setup_contracts, owner):
     with brownie.reverts("Can't add more gauge types"):
         gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
 
+
+# def test_changeTypeWeight(setup_contracts, owner):
+#     gauge_controller = setup_contracts[2]
+#     wt = 1
+#     oracle = accounts[4]
+#     n_gauge_types = gauge_controller.nGaugeTypes()
+#     next_week = get_week(1)
+#     scheduled_total_wt = gauge_controller.getTotalWeight(next_week)
+#     assert gauge_controller.
+#     assert gauge_controller.getLastTotalWtScheduleTime() == next_week
+#
+#     # Scenario 1: Only an administrator can change type weight.
+#     with brownie.reverts():
+#         gauge_controller.changeTypeWeight("TypeX", 0, {'from': oracle})
+#
+#     # Scenario 2: Can't change type weight for a type that hasn't been registered yet.
+#     with brownie.reverts("Empty type name"):
+#         gauge_controller.changeTypeWeight("", 0, {'from': owner})
+#
+#     # Scenario 3: Type weight changed and total weight and gauge relative weight adjusted accordingly.
+#     sub_scenarios = [
+#         # sub-scenario 1: Add type with zero weight.
+#         {"typeName": "TypeX", "nGaugeTypes": n_gauge_types+1, "typeWeightScheduled": 0, "typeWtScheduleTime": 0,
+#          "scheduledTotalWt": scheduled_total_wt, "totalWtScheduledTime": next_week},
+#
+#         # sub-scenario 2: Add type with positive weight
+#         {"typeName": "TypeY", "nGaugeTypes": n_gauge_types+2, "typeWeightScheduled": wt, "typeWtScheduleTime": next_week,
+#          "scheduledTotalWt": scheduled_total_wt, "totalWtScheduledTime": next_week},
+#     ]
+#
+#     for s in sub_scenarios:
+#         tx = gauge_controller.changeTypeWeight(s["typeName"], s["typeWeightScheduled"], {'from': owner})
+#         if s["typeWeightScheduled"] > 0:
+#             assert "TypeWeightUpdated" in tx.events
+#         assert "TypeAdded" in tx.events
+#         assert gauge_controller.nGaugeTypes() == s["nGaugeTypes"]
+#
+#         assert gauge_controller.getTypeWeight(s["nGaugeTypes"]-1) == 0
+#         assert gauge_controller.getTypeWeight(s["nGaugeTypes"]-1, next_week) == s["typeWeightScheduled"]
+#         assert gauge_controller.getLastTypeWtScheduleTime(s["nGaugeTypes"]-1) == s["typeWtScheduleTime"]
+#
+#         assert gauge_controller.getTotalWeight() == 0
+#         assert gauge_controller.getLastTotalWtScheduleTime() == s["totalWtScheduledTime"]
+#         assert gauge_controller.getTotalWeight(next_week) == s["scheduledTotalWt"]
+#
+#     # Scenario 4: Can't add more types beyond MAX_NUM
+#     for i in range(int(1e3 - n_gauge_types - 2)):
+#         tx = gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
+#         assert "TypeAdded" in tx.events
+#     with brownie.reverts("Can't add more gauge types"):
+#         gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
+
 # TODO: To be optimized
 # def test_changeGaugeBaseWeight(setup_contracts, owner, zero_address):
 #     token, gauge_controller = setup_contracts[0], setup_contracts[2]
