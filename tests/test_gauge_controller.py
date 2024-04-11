@@ -281,6 +281,56 @@ def test_checkpoint(setup_contracts, owner, daysInSeconds):
         assert gauge_controller.getWeightsSumPerType(0, get_week(1)) == 100*1e18
         assert gauge_controller.getWeightsSumPerType(0, get_week(2)) == 100*1e18
 
+# TODO: To be optimized
+# def test_checkpointGauge(setup_contracts, owner, daysInSeconds):
+#     gauge_controller = setup_contracts[2]
+#     week = daysInSeconds(7)
+#     week0 = get_week(0)
+#     week1 = get_week(1)
+#     gauges = gauge_controller.getGaugeList()
+#
+#     scenarios = [
+#         # Each checkpoint request can fill historical data from the past 100 weeks.
+#         {"sleepWeeks": 100, "updatedScheduleTime": week0 + 101 * week},
+#
+#         # Scenario 2: Historical data filled as expected within 100 weeks.
+#         {"sleepWeeks": 200, "updatedScheduleTime": week0 + 201 * week},
+#     ]
+#
+#     for s in scenarios:
+#         chain.sleep(week * s['sleepWeeks'])
+#         gauge_controller.checkpointGauge(gauges[0], {'from': owner})
+#
+#         assert gauge_controller.getLastGaugeWtScheduleTime(gauges[0]) == s['updatedScheduleTime']
+#         assert gauge_controller.getLastGaugeBaseWtScheduleTime(gauges[1]) == week1
+#
+#         assert gauge_controller.getLastSumWtScheduleTime(1) == s['updatedScheduleTime']
+#         assert gauge_controller.getLastTypeWtScheduleTime(1) == s['updatedScheduleTime']
+#         assert gauge_controller.getLastTotalWtScheduleTime() == s['updatedScheduleTime']
+#
+#         assert gauge_controller.gaugeRelativeWeight(gauges[0]) == 5*1e17
+#         assert gauge_controller.gaugeRelativeWeight(gauges[0], get_week(1)) == 5*1e17
+#         assert gauge_controller.gaugeRelativeWeight(gauges[0], get_week(2)) == 5*1e17
+#
+#         assert gauge_controller.getGaugeWeight(gauges[0]) == 100*1e18
+#         assert gauge_controller.getGaugeWeight(gauges[0], get_week(1)) == 100*1e18
+#         assert gauge_controller.getGaugeWeight(gauges[0], get_week(2)) == 100*1e18
+#
+#         assert gauge_controller.getGaugeBaseWeight(gauges[0]) == 100*1e18
+#         assert gauge_controller.getGaugeBaseWeight(gauges[0], get_week(1)) == 100*1e18
+#         assert gauge_controller.getGaugeBaseWeight(gauges[0], get_week(2)) == 100*1e18
+#
+#         assert gauge_controller.getTypeWeight(0) == 1
+#         assert gauge_controller.getTypeWeight(0, get_week(1)) == 1
+#         assert gauge_controller.getTypeWeight(0, get_week(1)) == 1
+#
+#         assert gauge_controller.getTotalWeight() == 200*1e18
+#         assert gauge_controller.getTotalWeight(get_week(1)) == 200*1e18
+#         assert gauge_controller.getTotalWeight(get_week(2)) == 200*1e18
+#
+#         assert gauge_controller.getWeightsSumPerType(0) == 100*1e18
+#         assert gauge_controller.getWeightsSumPerType(0, get_week(1)) == 100*1e18
+#         assert gauge_controller.getWeightsSumPerType(0, get_week(2)) == 100*1e18
 
 # TODO: To be optimized
 # """
