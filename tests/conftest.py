@@ -1,11 +1,15 @@
 import pytest
-
+from web3 import Web3
 from pathlib import Path
 from brownie import *
 import math
 import time
 
 deps = project.load(  Path.home() / ".brownie" / "packages" / config["dependencies"][0])
+
+@pytest.fixture
+def w3():
+    return Web3(Web3.HTTPProvider('http://localhost:8545'))
 
 @pytest.fixture
 def owner():
