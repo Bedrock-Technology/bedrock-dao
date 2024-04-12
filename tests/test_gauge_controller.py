@@ -1,10 +1,11 @@
 import brownie
 from brownie import accounts, chain
+import math
 import time
 import secrets
 import os
 
-from tests.utils import get_week, estimatedVotingPower
+from tests.utils import get_week, estimatedLockAmt, estimatedVotingPower
 
 
 def test_addType(setup_contracts, owner):
@@ -399,6 +400,258 @@ def test_checkpointGauge_in_batch(setup_contracts, owner, daysInSeconds):
     chain.sleep(week*sleep_weeks)
     with brownie.reverts():
         gauge_controller.checkpointGauge({'from': owner})
+
+
+def test_weight_decrease_overtime(setup_contracts, owner, users, daysInSeconds):
+    token, voting_escrow, gauge_controller = (
+        setup_contracts[0], setup_contracts[1], setup_contracts[2])
+
+    four_years = daysInSeconds(4*365)
+    week = daysInSeconds(7)
+    week0 = get_week(0)
+    week1 = get_week(1)
+    week2 = get_week(2)
+    week3 = get_week(3)
+    week4 = get_week(4)
+    week5 = get_week(5)
+    week6 = get_week(6)
+    week7 = get_week(7)
+
+    gauges = gauge_controller.getGaugeList()
+
+    prec = gauge_controller.PREC()
+
+    # sleep_weeks = 50
+    # updated_schedule_time = week0 + (sleep_weeks + 1) * week
+    # chain.sleep(week*sleep_weeks)
+
+    weeks_in_lock = 4
+    voting_power = 700e18
+    lock_end = get_week(weeks_in_lock + 1)
+    amt_in_lock = estimatedLockAmt(voting_power, weeks_in_lock)
+    assert amt_in_lock == 36500e18
+    slope = amt_in_lock/four_years
+
+    token.mint(users[0], amt_in_lock, {"from": owner})
+    token.approve(voting_escrow, amt_in_lock, {"from": users[0]})
+
+    voting_escrow.createLock(amt_in_lock, lock_end, {"from": users[0]})
+    assert voting_escrow.locked(users[0])[0] == amt_in_lock  # amount
+    assert voting_escrow.locked(users[0])[1] == lock_end  # end
+    assert voting_escrow.lockEnd(users[0]) == lock_end  # end
+
+    gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[0]})
+    assert gauge_controller.userVoteData(users[0], gauges[0])[0] == slope   # slope
+    assert gauge_controller.userVoteData(users[0], gauges[0])[1] == prec   # power
+    assert gauge_controller.userVoteData(users[0], gauges[0])[2] == lock_end   # end
+    assert gauge_controller.userVoteData(users[0], gauges[0])[3] == chain.time()   # voteTime
+
+    gauge_controller.changeGaugeBaseWeight(gauges[0], 0, {'from': owner})
+
+    # Scenario 1： Weights are scheduled to take effect from next week.
+    for i in range(2):
+        assert gauge_controller.getLastGaugeWtScheduleTime(gauges[i]) == week1
+        assert gauge_controller.getLastGaugeBaseWtScheduleTime(gauges[i]) == week1
+        assert gauge_controller.getLastTypeWtScheduleTime(i) == week1
+        assert gauge_controller.getLastSumWtScheduleTime(i) == week1
+    assert gauge_controller.getLastTotalWtScheduleTime() == week1
+
+    assert math.ceil(gauge_controller.gaugeRelativeWeight(gauges[0])/1e15) == 0
+    assert math.ceil(gauge_controller.gaugeRelativeWeight(gauges[1])/1e15) == 0
+    relative_weight0 = gauge_controller.gaugeRelativeWeight(gauges[0], week1)
+    relative_weight1 = gauge_controller.gaugeRelativeWeight(gauges[1], week1)
+    assert math.ceil(relative_weight0/1e15) == 875
+    assert math.floor(relative_weight1/1e15) == 125
+    assert math.ceil((relative_weight0 + relative_weight1)/1e18) == 1
+
+    gauge_weights = [
+        {"week0": 0, "week1": 700},
+        {"week0": 0, "week1": 100},
+    ]
+    for i in range(2):
+        assert math.ceil(gauge_controller.getGaugeWeight(gauges[i])) == gauge_weights[i]['week0']
+        assert math.ceil(gauge_controller.getGaugeWeight(gauges[i], week1)/1e18) == gauge_weights[i]['week1']
+
+    gauge_base_weights = [
+        {"week0": 0, "week1": 0},
+        {"week0": 0, "week1": 100e18},
+    ]
+    for i in range(2):
+        assert gauge_controller.getGaugeBaseWeight(gauges[i]) == gauge_base_weights[i]['week0']
+        assert gauge_controller.getGaugeBaseWeight(gauges[i], week1) == gauge_base_weights[i]['week1']
+
+    assert gauge_controller.getUserVotesWtForGauge(gauges[0]) == 0
+    assert math.ceil(gauge_controller.getUserVotesWtForGauge(gauges[0], week1)/1e18) == voting_power/1e18
+    assert gauge_controller.getUserVotesWtForGauge(gauges[1]) == 0
+    assert gauge_controller.getUserVotesWtForGauge(gauges[1], week1) == 0
+
+    for i in range(2):
+        assert gauge_controller.getTypeWeight(i) == 0
+        assert gauge_controller.getTypeWeight(i, week1) == 1
+
+    assert gauge_controller.getTotalWeight() == 0
+    assert math.ceil(gauge_controller.getTotalWeight(week1)/1e18) == 800
+
+    assert gauge_controller.getWeightsSumPerType(0) == 0
+    assert math.ceil(gauge_controller.getWeightsSumPerType(0, week1)/1e18) == voting_power/1e18
+    assert gauge_controller.getWeightsSumPerType(1) == 0
+    assert gauge_controller.getWeightsSumPerType(1, week1) == 100e18
+
+    # Scenario 2: Before the lock expires, type weights and base weights will remain constant,
+    # while user vote weight decreases over time.
+    #
+    # Note: All view functions should return consistent weights that will decrease over time even no checkpoints occur
+    chain.sleep(week*2)
+    token.mint(users[0], amt_in_lock, {"from": owner})
+
+    for i in range(2):
+        assert gauge_controller.getLastGaugeWtScheduleTime(gauges[i]) == week1
+        assert gauge_controller.getLastGaugeBaseWtScheduleTime(gauges[i]) == week1
+        assert gauge_controller.getLastTypeWtScheduleTime(i) == week1
+        assert gauge_controller.getLastSumWtScheduleTime(i) == week1
+    assert gauge_controller.getLastTotalWtScheduleTime() == week1
+
+    relative_weight0 = math.ceil(gauge_controller.gaugeRelativeWeight(gauges[0])/1e15)
+    relative_weight1 = math.floor(gauge_controller.gaugeRelativeWeight(gauges[1])/1e15)
+    assert relative_weight0 == math.ceil(1e18 * slope*week*3 / (slope*week*3 + 100e18)/1e15)
+    assert relative_weight1 == math.floor(1e18 * 100e18 / (slope*week*3 + 100e18)/1e15)
+    assert relative_weight0 + relative_weight1 == 1000
+
+    gauge_weights = [
+        {"week2": math.ceil(slope*week*3/1e18), "week3": math.ceil(slope*week*2/1e18)},
+        {"week2": 100, "week3": 100},
+    ]
+    for i in range(2):
+        assert math.ceil(gauge_controller.getGaugeWeight(gauges[i])/1e18) == gauge_weights[i]['week2']
+        assert math.ceil(gauge_controller.getGaugeWeight(gauges[i], get_week(1))/1e18) == gauge_weights[i]['week3']
+
+    gauge_base_weights = [
+        {"week2": 0, "week3": 0},
+        {"week2": 100e18, "week3": 100e18},
+    ]
+    for i in range(2):
+        assert gauge_controller.getGaugeBaseWeight(gauges[i]) == gauge_base_weights[i]['week2']
+        assert gauge_controller.getGaugeBaseWeight(gauges[i], get_week(1)) == gauge_base_weights[i]['week3']
+
+    assert math.ceil(gauge_controller.getUserVotesWtForGauge(gauges[0])/1e18) == math.ceil((slope*week*3)/1e18)
+    assert math.ceil(gauge_controller.getUserVotesWtForGauge(gauges[0], get_week(1))/1e18) == math.ceil((slope*week*2)/1e18)
+    assert gauge_controller.getUserVotesWtForGauge(gauges[1]) == 0
+    assert gauge_controller.getUserVotesWtForGauge(gauges[1], get_week(1)) == 0
+
+    for i in range(2):
+        assert gauge_controller.getTypeWeight(i) == 1
+        assert gauge_controller.getTypeWeight(i, get_week(1)) == 1
+
+    assert math.ceil(gauge_controller.getTotalWeight()/1e18) == math.ceil((slope*week*3)/1e18) + 100
+    assert math.ceil(gauge_controller.getTotalWeight(get_week(1))/1e18) == math.ceil((slope*week*2)/1e18) + 100
+
+    assert math.ceil(gauge_controller.getWeightsSumPerType(0)/1e18) == math.ceil((slope*week*3)/1e18)
+    assert math.ceil(gauge_controller.getWeightsSumPerType(0, get_week(1))/1e18) == math.ceil((slope*week*2)/1e18)
+    assert gauge_controller.getWeightsSumPerType(1) == 100e18
+    assert gauge_controller.getWeightsSumPerType(1, get_week(1)) == 100e18
+
+    # Scenario 3: After the lock has expired, type weights and base weights will still remain constant,
+    # while user vote weight becomes zero.
+    #
+    # Note: All view functions should return consistent weights that will decrease over time even no checkpoints occur
+    chain.sleep(week*3)
+    token.mint(users[0], amt_in_lock, {"from": owner})
+
+    for i in range(2):
+        assert gauge_controller.getLastGaugeWtScheduleTime(gauges[i]) == week1
+        assert gauge_controller.getLastGaugeBaseWtScheduleTime(gauges[i]) == week1
+        assert gauge_controller.getLastTypeWtScheduleTime(i) == week1
+        assert gauge_controller.getLastSumWtScheduleTime(i) == week1
+    assert gauge_controller.getLastTotalWtScheduleTime() == week1
+
+    relative_weight0 = gauge_controller.gaugeRelativeWeight(gauges[0])
+    relative_weight1 = gauge_controller.gaugeRelativeWeight(gauges[1])
+    assert relative_weight0 == 0
+    assert relative_weight1 == 1e18
+    assert relative_weight0 + relative_weight1 == 1e18
+
+    gauge_weights = [
+        {"week2": 0, "week3": 0},
+        {"week2": 100, "week3": 100},
+    ]
+    for i in range(2):
+        assert math.ceil(gauge_controller.getGaugeWeight(gauges[i])/1e18) == gauge_weights[i]['week2']
+        assert math.ceil(gauge_controller.getGaugeWeight(gauges[i], get_week(1))/1e18) == gauge_weights[i]['week3']
+
+    gauge_base_weights = [
+        {"week2": 0, "week3": 0},
+        {"week2": 100e18, "week3": 100e18},
+    ]
+    for i in range(2):
+        assert gauge_controller.getGaugeBaseWeight(gauges[i]) == gauge_base_weights[i]['week2']
+        assert gauge_controller.getGaugeBaseWeight(gauges[i], get_week(1)) == gauge_base_weights[i]['week3']
+
+    assert gauge_controller.getUserVotesWtForGauge(gauges[0]) == 0
+    assert gauge_controller.getUserVotesWtForGauge(gauges[0], get_week(1)) == 0
+    assert gauge_controller.getUserVotesWtForGauge(gauges[1]) == 0
+    assert gauge_controller.getUserVotesWtForGauge(gauges[1], get_week(1)) == 0
+
+    for i in range(2):
+        assert gauge_controller.getTypeWeight(i) == 1
+        assert gauge_controller.getTypeWeight(i, get_week(1)) == 1
+
+    assert gauge_controller.getTotalWeight() == 100e18
+    assert gauge_controller.getTotalWeight(get_week(1)) == 100e18
+
+    assert math.ceil(gauge_controller.getWeightsSumPerType(0)/1e18) == 0
+    assert math.ceil(gauge_controller.getWeightsSumPerType(0, get_week(1))/1e18) == 0
+    assert gauge_controller.getWeightsSumPerType(1) == 100e18
+    assert gauge_controller.getWeightsSumPerType(1, get_week(1)) == 100e18
+
+    # Scenario 4: After checkpoints, the weights in the contract status will be updated to ensure they are consistent
+    # with what we have queried previously using view functions.
+    gauge_controller.checkpointGauge({'from': owner})
+
+    for i in range(2):
+        assert gauge_controller.getLastGaugeWtScheduleTime(gauges[i]) == week6
+        assert gauge_controller.getLastGaugeBaseWtScheduleTime(gauges[i]) == week6
+        assert gauge_controller.getLastTypeWtScheduleTime(i) == week6
+        assert gauge_controller.getLastSumWtScheduleTime(i) == week6
+    assert gauge_controller.getLastTotalWtScheduleTime() == week6
+
+    relative_weight0 = math.ceil(gauge_controller.gaugeRelativeWeight(gauges[0], week2)/1e15)
+    relative_weight1 = math.floor(gauge_controller.gaugeRelativeWeight(gauges[1], week2)/1e15)
+    assert relative_weight0 == math.ceil(1e18 * slope*week*3 / (slope*week*3 + 100e18)/1e15)
+    assert relative_weight1 == math.floor(1e18 * 100e18 / (slope*week*3 + 100e18)/1e15)
+    assert relative_weight0 + relative_weight1 == 1000
+
+    gauge_weights = [
+        {"week2": math.ceil(slope*week*3/1e18), "week3": math.ceil(slope*week*2/1e18)},
+        {"week2": 100, "week3": 100},
+    ]
+    for i in range(2):
+        assert math.ceil(gauge_controller.getGaugeWeight(gauges[i], week2)/1e18) == gauge_weights[i]['week2']
+        assert math.ceil(gauge_controller.getGaugeWeight(gauges[i], week3)/1e18) == gauge_weights[i]['week3']
+
+    gauge_base_weights = [
+        {"week2": 0, "week3": 0},
+        {"week2": 100e18, "week3": 100e18},
+    ]
+    for i in range(2):
+        assert gauge_controller.getGaugeBaseWeight(gauges[i], week2) == gauge_base_weights[i]['week2']
+        assert gauge_controller.getGaugeBaseWeight(gauges[i], week3) == gauge_base_weights[i]['week3']
+
+    assert math.ceil(gauge_controller.getUserVotesWtForGauge(gauges[0], week2)/1e18) == math.ceil((slope*week*3)/1e18)
+    assert math.ceil(gauge_controller.getUserVotesWtForGauge(gauges[0], week3)/1e18) == math.ceil((slope*week*2)/1e18)
+    assert gauge_controller.getUserVotesWtForGauge(gauges[1], week2) == 0
+    assert gauge_controller.getUserVotesWtForGauge(gauges[1], week3) == 0
+
+    for i in range(2):
+        assert gauge_controller.getTypeWeight(i, week2) == 1
+        assert gauge_controller.getTypeWeight(i, week3) == 1
+
+    assert math.ceil(gauge_controller.getTotalWeight(week2)/1e18) == math.ceil((slope*week*3)/1e18) + 100
+    assert math.ceil(gauge_controller.getTotalWeight(week3)/1e18) == math.ceil((slope*week*2)/1e18) + 100
+
+    assert math.ceil(gauge_controller.getWeightsSumPerType(0, week2)/1e18) == math.ceil((slope*week*3)/1e18)
+    assert math.ceil(gauge_controller.getWeightsSumPerType(0, week3)/1e18) == math.ceil((slope*week*2)/1e18)
+    assert gauge_controller.getWeightsSumPerType(1, week2) == 100e18
+    assert gauge_controller.getWeightsSumPerType(1, week3) == 100e18
 
 
 # TODO: To be optimized
