@@ -345,7 +345,6 @@ def test_checkpointGauge_in_batch(setup_contracts, owner, daysInSeconds):
     gauge_controller = setup_contracts[2]
     week = daysInSeconds(7)
     week0 = get_week(0)
-    week1 = get_week(1)
     gauges = gauge_controller.getGaugeList()
 
     # Scenario 1： Each gauge checkpoint request can fill historical data from the past weeks.
@@ -354,36 +353,43 @@ def test_checkpointGauge_in_batch(setup_contracts, owner, daysInSeconds):
     chain.sleep(week*sleep_weeks)
     gauge_controller.checkpointGauge({'from': owner})
 
-    assert gauge_controller.getLastGaugeWtScheduleTime(gauges[0]) == updated_schedule_time
-    assert gauge_controller.getLastGaugeBaseWtScheduleTime(gauges[1]) == updated_schedule_time
+    for g in gauges:
+        assert gauge_controller.getLastGaugeWtScheduleTime(g) == updated_schedule_time
+        assert gauge_controller.getLastGaugeBaseWtScheduleTime(g) == updated_schedule_time
 
-    assert gauge_controller.getLastSumWtScheduleTime(1) == updated_schedule_time
-    assert gauge_controller.getLastTypeWtScheduleTime(1) == updated_schedule_time
-    assert gauge_controller.getLastTotalWtScheduleTime() == updated_schedule_time
+    for i in range(2):
+        assert gauge_controller.getLastSumWtScheduleTime(i) == updated_schedule_time
+        assert gauge_controller.getLastTypeWtScheduleTime(i) == updated_schedule_time
+        assert gauge_controller.getLastTotalWtScheduleTime() == updated_schedule_time
 
-    assert gauge_controller.gaugeRelativeWeight(gauges[0]) == 5*1e17
-    assert gauge_controller.gaugeRelativeWeight(gauges[0], get_week(1)) == 5*1e17
-    assert gauge_controller.gaugeRelativeWeight(gauges[0], get_week(2)) == 5*1e17
+    for g in gauges:
+        assert gauge_controller.gaugeRelativeWeight(g) == 5*1e17
+        assert gauge_controller.gaugeRelativeWeight(g, get_week(1)) == 5*1e17
+        assert gauge_controller.gaugeRelativeWeight(g, get_week(2)) == 5*1e17
 
-    assert gauge_controller.getGaugeWeight(gauges[0]) == 100*1e18
-    assert gauge_controller.getGaugeWeight(gauges[0], get_week(1)) == 100*1e18
-    assert gauge_controller.getGaugeWeight(gauges[0], get_week(2)) == 100*1e18
+    for g in gauges:
+        assert gauge_controller.getGaugeWeight(g) == 100*1e18
+        assert gauge_controller.getGaugeWeight(g, get_week(1)) == 100*1e18
+        assert gauge_controller.getGaugeWeight(g, get_week(2)) == 100*1e18
 
-    assert gauge_controller.getGaugeBaseWeight(gauges[0]) == 100*1e18
-    assert gauge_controller.getGaugeBaseWeight(gauges[0], get_week(1)) == 100*1e18
-    assert gauge_controller.getGaugeBaseWeight(gauges[0], get_week(2)) == 100*1e18
+    for g in gauges:
+        assert gauge_controller.getGaugeBaseWeight(g) == 100*1e18
+        assert gauge_controller.getGaugeBaseWeight(g, get_week(1)) == 100*1e18
+        assert gauge_controller.getGaugeBaseWeight(g, get_week(2)) == 100*1e18
 
-    assert gauge_controller.getTypeWeight(0) == 1
-    assert gauge_controller.getTypeWeight(0, get_week(1)) == 1
-    assert gauge_controller.getTypeWeight(0, get_week(1)) == 1
+    for i in range(2):
+        assert gauge_controller.getTypeWeight(i) == 1
+        assert gauge_controller.getTypeWeight(i, get_week(1)) == 1
+        assert gauge_controller.getTypeWeight(i, get_week(1)) == 1
 
     assert gauge_controller.getTotalWeight() == 200*1e18
     assert gauge_controller.getTotalWeight(get_week(1)) == 200*1e18
     assert gauge_controller.getTotalWeight(get_week(2)) == 200*1e18
 
-    assert gauge_controller.getWeightsSumPerType(0) == 100*1e18
-    assert gauge_controller.getWeightsSumPerType(0, get_week(1)) == 100*1e18
-    assert gauge_controller.getWeightsSumPerType(0, get_week(2)) == 100*1e18
+    for i in range(2):
+        assert gauge_controller.getWeightsSumPerType(i) == 100*1e18
+        assert gauge_controller.getWeightsSumPerType(i, get_week(1)) == 100*1e18
+        assert gauge_controller.getWeightsSumPerType(i, get_week(2)) == 100*1e18
 
     # Scenario 2： The checkpoint will revert due to the gas limit, usually because there are too many gaps.
     #
