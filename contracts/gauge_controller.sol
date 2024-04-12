@@ -229,10 +229,23 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     /**
-     *  @notice checkpoints gauge weight for missing weeks
+     *  @notice Checkpoints for the given gauge for missing weeks.
      */
     function checkpointGauge(address _gAddr) external {
         _getWeight(_gAddr);
+        _getTotal();
+    }
+
+    /**
+     *  @notice Checkpoints for all registered gauges for missing weeks.
+     */
+    function checkpointGauge() external {
+        address[] memory gaugeList = gauges;
+        for (uint16 i = 0; i < gaugeList.length; i++) {
+            address gAddr = gaugeList[i];
+            _getWeight(gAddr);
+        }
+
         _getTotal();
     }
 
