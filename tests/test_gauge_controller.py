@@ -340,6 +340,61 @@ def test_checkpointGauge(setup_contracts, owner, daysInSeconds):
         assert gauge_controller.getWeightsSumPerType(0, get_week(1)) == 100*1e18
         assert gauge_controller.getWeightsSumPerType(0, get_week(2)) == 100*1e18
 
+
+def test_checkpointGauge_in_batch(setup_contracts, owner, daysInSeconds):
+    gauge_controller = setup_contracts[2]
+    week = daysInSeconds(7)
+    week0 = get_week(0)
+    week1 = get_week(1)
+    gauges = gauge_controller.getGaugeList()
+
+    # Scenario 1： Each gauge checkpoint request can fill historical data from the past weeks.
+    sleep_weeks = 50
+    updated_schedule_time = week0 + (sleep_weeks + 1) * week
+    chain.sleep(week*sleep_weeks)
+    gauge_controller.checkpointGauge({'from': owner})
+
+    assert gauge_controller.getLastGaugeWtScheduleTime(gauges[0]) == updated_schedule_time
+    assert gauge_controller.getLastGaugeBaseWtScheduleTime(gauges[1]) == updated_schedule_time
+
+    assert gauge_controller.getLastSumWtScheduleTime(1) == updated_schedule_time
+    assert gauge_controller.getLastTypeWtScheduleTime(1) == updated_schedule_time
+    assert gauge_controller.getLastTotalWtScheduleTime() == updated_schedule_time
+
+    assert gauge_controller.gaugeRelativeWeight(gauges[0]) == 5*1e17
+    assert gauge_controller.gaugeRelativeWeight(gauges[0], get_week(1)) == 5*1e17
+    assert gauge_controller.gaugeRelativeWeight(gauges[0], get_week(2)) == 5*1e17
+
+    assert gauge_controller.getGaugeWeight(gauges[0]) == 100*1e18
+    assert gauge_controller.getGaugeWeight(gauges[0], get_week(1)) == 100*1e18
+    assert gauge_controller.getGaugeWeight(gauges[0], get_week(2)) == 100*1e18
+
+    assert gauge_controller.getGaugeBaseWeight(gauges[0]) == 100*1e18
+    assert gauge_controller.getGaugeBaseWeight(gauges[0], get_week(1)) == 100*1e18
+    assert gauge_controller.getGaugeBaseWeight(gauges[0], get_week(2)) == 100*1e18
+
+    assert gauge_controller.getTypeWeight(0) == 1
+    assert gauge_controller.getTypeWeight(0, get_week(1)) == 1
+    assert gauge_controller.getTypeWeight(0, get_week(1)) == 1
+
+    assert gauge_controller.getTotalWeight() == 200*1e18
+    assert gauge_controller.getTotalWeight(get_week(1)) == 200*1e18
+    assert gauge_controller.getTotalWeight(get_week(2)) == 200*1e18
+
+    assert gauge_controller.getWeightsSumPerType(0) == 100*1e18
+    assert gauge_controller.getWeightsSumPerType(0, get_week(1)) == 100*1e18
+    assert gauge_controller.getWeightsSumPerType(0, get_week(2)) == 100*1e18
+
+    # Scenario 2： The checkpoint will revert due to the gas limit, usually because there are too many gaps.
+    #
+    # Note: Specifically, the checkpointGauge executes _getTotal in conjunction with _getWeight;
+    # both functions contain loops that can iterate numerous times, potentially causing calculation costs to exceed
+    sleep_weeks = 65
+    chain.sleep(week*sleep_weeks)
+    with brownie.reverts():
+        gauge_controller.checkpointGauge({'from': owner})
+
+
 # TODO: To be optimized
 # """
 # Test vote for gauge weight - happy path
