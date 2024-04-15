@@ -408,14 +408,10 @@ def test_weight_decrease_overtime(setup_contracts, owner, users, daysInSeconds):
 
     four_years = daysInSeconds(4*365)
     week = daysInSeconds(7)
-    week0 = get_week(0)
     week1 = get_week(1)
     week2 = get_week(2)
     week3 = get_week(3)
-    week4 = get_week(4)
-    week5 = get_week(5)
     week6 = get_week(6)
-    week7 = get_week(7)
 
     gauges = gauge_controller.getGaugeList()
 
@@ -655,80 +651,54 @@ def test_weight_decrease_overtime(setup_contracts, owner, users, daysInSeconds):
 
 
 # TODO: To be optimized
-# """
-# Test vote for gauge weight - happy path
-# """
-# def test_vote_for_gauge_weight__happy_path(setup_contracts, owner, floorToWeek, daysInSeconds):
-#
-#     token, ve, gauge = setup_contracts[0], setup_contracts[1], setup_contracts[2]
-#     amount = 100e18
-#
-#     voter1 = accounts[2]
-#     voter2 = accounts[3]
-#     voters = [voter1,voter2]
-#
-#     lp_gauge1 = accounts[8]
-#     lp_gauge2 = accounts[9]
-#
-#     tx = gauge.addType("TYPE0", 1, {'from':owner})
-#     assert "TypeAdded" in tx.events
-#
-#     tx = gauge.addGauge(lp_gauge1, 0, 0, {'from':owner})
-#
-#     """
-#     test nGauges
-#     """
-#     assert gauge.nGauges() == 1
-#     assert "GaugeAdded" in tx.events
-#
-#     tx = gauge.addGauge(lp_gauge2, 0, 0, {'from':owner})
-#
-#     assert gauge.nGauges() == 2
-#     assert "GaugeAdded" in tx.events
-#
-#     """
-#     test voteForGaugeWeight
-#     """
-#
-#     lockEnd = floorToWeek(chain.time() + daysInSeconds(365))
-#     for voter in voters:
-#         token.mint(voter, amount, {"from": owner})
-#         token.approve(ve, amount, {"from": voter})
-#         ve.createLock(amount,lockEnd, {"from": voter})
-#
-#     _, slope, ts = ve.getLastUserPoint(voter1)
-#     assert ve.balanceOf(voter1, ts) == estimatedVotingPower(amount, ve.lockEnd(voter1)-ts)
-#
-#     tx = gauge.voteForGaugeWeight(lp_gauge1, 5000, {'from': voter1})
-#     assert "GaugeVoted" in tx.events
-#
-#     tx = gauge.voteForGaugeWeight(lp_gauge2, 8000, {'from': voter2})
-#     assert "GaugeVoted" in tx.events
-#
-#     """
-#     test gaugeRelativeWeight
-#     """
-#     vp1 = 0.5 * slope * (ve.lockEnd(voter1)-ts)
-#     vp2 = 0.8 * slope * (ve.lockEnd(voter2)-ts)
-#
-#     expectedRelativeWeight = round(vp1/(vp1+vp2), 2)
-#     gotRelativeWeight = round(gauge.gaugeRelativeWeight(lp_gauge1, get_week(1))/1e18, 2)
-#
-#     assert expectedRelativeWeight == gotRelativeWeight
-#
-#     """
-#     test getUserVotesWtForGauge
-#     """
-#     expectedWt = round(0.5 * slope * (ve.lockEnd(voter1) - get_week(1))/1e18, 2)
-#     gotWt = round(gauge.getUserVotesWtForGauge(lp_gauge1, get_week(1))/1e18, 2)
-#     assert gotWt == expectedWt
-#
-#     """
-#     test userVoteData
-#     """
-#
-#     voteData = gauge.userVoteData(voter1, lp_gauge1)
-#     _, slope, _ = ve.getLastUserPoint(voter1)
-#     assert voteData[0] == 0.5 * slope
-#     assert voteData[1] == 5000
-#     assert voteData[2] == ve.lockEnd(voter1)
+def test_voteForGaugeWeight(setup_contracts, owner, users, daysInSeconds):
+    token, voting_escrow, gauge_controller = (
+        setup_contracts[0], setup_contracts[1], setup_contracts[2])
+
+    week = daysInSeconds(7)
+
+    gauges = gauge_controller.getGaugeList()
+
+    prec = gauge_controller.PREC()
+
+    weeks_in_lock = 4
+    voting_power = 700e18
+    amt_in_lock = estimatedLockAmt(voting_power, weeks_in_lock)
+    assert amt_in_lock == 36500e18
+
+    token.mint(users[0], amt_in_lock, {"from": owner})
+    token.approve(voting_escrow, amt_in_lock, {"from": users[0]})
+
+    gauge_controller.changeGaugeBaseWeight(gauges[0], 0, {'from': owner})
+
+    # Scenario 1: Users can't provide invalid voting power
+    with brownie.reverts("Invalid voting power provided"):
+        gauge_controller.voteForGaugeWeight(gauges[0], prec+1, {'from': users[0]})
+
+    # Scenario 2: Users without available voting power can't vote
+    with brownie.reverts("no voting power available"):
+        gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[1]})
+
+    # Scenario 3: Users can't vote if the lock expires before next week
+    voting_escrow.createLock(1e18, get_week(1), {"from": users[0]})
+    with brownie.reverts("Lock expires before next cycle"):
+        gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[0]})
+
+    # Scenario 4: Users can't vote too frequently for the same gauge
+    voting_escrow.increaseLockLength(get_week(10), {"from": users[0]})
+    gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[0]})
+    with brownie.reverts("Can't vote so often"):
+        gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[0]})
+
+    # Scenario 5: Users can't vote with power beyond the boundary limit
+    chain.sleep(int(gauge_controller.WEIGHT_VOTE_DELAY()/week) + week)
+    with brownie.reverts("Power beyond boundaries"):
+        gauge_controller.voteForGaugeWeight(gauges[1], 1, {'from': users[0]})
+
+    # Scenario 6: Users can't vote positive power for a gauge with zero type weight
+
+    # Scenario 7: Users can vote zero power for a gauge with zero type weight;
+    # the power is scheduled to take effect the following week.
+
+    # Scenario 8: Users can vote positively for a gauge with a positive type weight;
+    # the power is scheduled to take effect the following week.
