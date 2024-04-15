@@ -14,7 +14,7 @@
 // ⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀
 pragma solidity ^0.8.9;
 
-import "interfaces/IVotingEscrow.sol";
+import "interfaces/IGaugeController.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -33,7 +33,7 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
  *          1) role based ACL.
  */
 
-contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
+contract VotingEscrow is Initializable, PausableUpgradeable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -77,6 +77,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     uint256 public totalLocked;
     address public assetToken;
 
+    // Gauge controller
+    address public gaugeController;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -85,7 +88,8 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     function initialize(
         string memory _name,
         string memory _symbol,
-        address _assetToken) initializer public
+        address _assetToken,
+        address _gaugeController) initializer public
     {
         require(_assetToken != address(0x0), "Asset address nil");
         __Pausable_init();
@@ -112,6 +116,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
 
         // bind asset token
         assetToken = _assetToken;
+
+        // bind gauge controller
+        gaugeController = _gaugeController;
     }
 
     /**
@@ -175,7 +182,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function depositFor(address _addr, uint128 _value)
         external
-        override
         nonReentrant
         whenNotPaused
         onlyRole(REWARDS_MANAGER_ROLE)
@@ -190,6 +196,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         require(locked_.end > block.timestamp, "Cannot add to expired lock. Withdraw");
 
         _depositFor(_addr, _value, 0, locked_, LockAction.DEPOSIT_FOR);
+
+        Point memory point = userPointHistory[_addr][userPointEpoch[_addr]];
+        IGaugeController(gaugeController).voteForGaugeWeightAutomatically(_addr, point.slope, locked_.end);
     }
 
      /**
@@ -199,7 +208,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function createLock(uint256 _value, uint256 _unlockTime)
         external
-        override
         nonReentrant
         whenNotPaused
     {
@@ -217,6 +225,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         require(unlock_time <= block.timestamp + MAXTIME, "Exceeds maxtime");
 
         _depositFor(account, _value, unlock_time, locked_, LockAction.CREATE_LOCK);
+
+        Point memory point = userPointHistory[account][userPointEpoch[account]];
+        IGaugeController(gaugeController).voteForGaugeWeightAutomatically(account, point.slope, unlock_time);
     }
 
     /**
@@ -225,7 +236,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function increaseLockAmount(uint256 _value)
         external
-        override
         nonReentrant
         whenNotPaused
     {
@@ -240,6 +250,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         require(locked_.end > block.timestamp, "Cannot add to expired lock. Withdraw");
 
         _depositFor(account, _value, 0, locked_, LockAction.INCREASE_AMOUNT);
+
+        Point memory point = userPointHistory[account][userPointEpoch[account]];
+        IGaugeController(gaugeController).voteForGaugeWeightAutomatically(account, point.slope, locked_.end);
     }
 
     /**
@@ -248,7 +261,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function increaseLockLength(uint256 _unlockTime)
         external
-        override
         nonReentrant
         whenNotPaused
     {
@@ -265,6 +277,9 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
         require(unlock_time <= block.timestamp + MAXTIME, "Exceeds maxtime");
 
         _depositFor(account, 0, unlock_time, locked_, LockAction.INCREASE_TIME);
+
+        Point memory point = userPointHistory[account][userPointEpoch[account]];
+        IGaugeController(gaugeController).voteForGaugeWeightAutomatically(account, point.slope, unlock_time);
     }
 
     /**
@@ -272,7 +287,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      */
     function withdraw()
         external
-        override
         nonReentrant
         whenNotPaused
     {
@@ -359,7 +373,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      * @param _account User for which to return the voting power
      * @return Voting power of user
      */
-    function balanceOf(address _account) external view override returns (uint256) {
+    function balanceOf(address _account) external view returns (uint256) {
         uint256 epoch = userPointEpoch[_account];
         if (epoch == 0) {
             return 0;
@@ -385,7 +399,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     function balanceOf(address _account, uint256 _ts)
         public
         view
-        override
         returns (uint256)
     {
         uint256 epoch = _findUserTimestampEpoch(_account, _ts);
@@ -413,7 +426,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     function balanceOfAt(address _account, uint256 _blockNumber)
         external
         view
-        override
         returns (uint256)
     {
         require(_blockNumber <= block.number, "Only past block number");
@@ -465,7 +477,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      * @dev Calculate current total supply of voting power
      * @return Current totalSupply
      */
-    function totalSupply() external view override returns (uint256) {
+    function totalSupply() external view returns (uint256) {
         uint256 epoch_ = globalEpoch;
         Point memory lastPoint = pointHistory[epoch_];
         return _supplyAt(lastPoint, block.timestamp);
@@ -475,7 +487,7 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
      * @notice Calculate total voting power at a given timestamp
      * @return Total voting power at timestamp
      */
-    function totalSupply(uint256 ts) public view override returns (uint256) {
+    function totalSupply(uint256 ts) public view returns (uint256) {
         uint256 _epoch = _findTimestampEpoch(ts);
         if (_epoch ==0) return 0;
         Point memory lastPoint = pointHistory[_epoch];
@@ -490,7 +502,6 @@ contract VotingEscrow is IVotingEscrow, Initializable, PausableUpgradeable, Acce
     function totalSupplyAt(uint256 _blockNumber)
         external
         view
-        override
         returns (uint256)
     {
         require(_blockNumber <= block.number, "Only past block number");

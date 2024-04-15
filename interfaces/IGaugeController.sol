@@ -12,22 +12,23 @@ interface IGaugeController {
     /// @notice Checkpoint to fill data common for all gauges
     function checkpoint() external;
 
-    /// @notice checkpoints gauge weight for missing weeks
+    /// @notice Checkpoints for the given gauge for missing weeks
     function checkpointGauge(address _gAddr) external;
 
-    /// @notice Get gauge weight normalized to 1e18 and also fill all the unfilled
-    ///         values for type and gauge records
-    /// @dev Any address can call, however nothing is recorded if the values are filled already
-    /// @param _gAddr Gauge address
-    /// @param _time Relative weight at the specified timestamp in the past or present
-    /// @return Value of relative weight normalized to 1e18
-    function gaugeRelativeWeightWrite(address _gAddr, uint256 _time)
-        external
-        returns (uint256);
+    /// @notice Checkpoints for all registered gauges for missing weeks
+    function checkpointGauge() external;
 
-    function gaugeRelativeWeightWrite(address _gAddr)
-        external
-        returns (uint256);
+    ///  @notice Allocate voting power for changing pool weights
+    ///  @param _gAddr Gauge which `msg.sender` votes for
+    ///  @param _userWeight Weight for a gauge in bps (units of 0.01%). Minimal is 0.01%. Ignored if 0
+    function voteForGaugeWeight(address _gAddr, uint256 _userWeight) external;
+
+    /// @notice Increase the weight of user votes for gauges automatically in proportion to the current user votes after
+    ///         a user's voting power has increased due to locking activities.
+    /// @param _user The address of the veBRT holder
+    /// @param _slope The latest slope of the user's point
+    /// @param _lockEnd The latest BRT lock end time for the user
+    function voteForGaugeWeightAutomatically(address _user, int128 _slope, uint256 _lockEnd) external;
 
     /// @notice gets the number of gauge registered with the controller.
     function nGauges() external view returns (uint256);
@@ -37,45 +38,56 @@ interface IGaugeController {
     /// @return Gauge type id
     function gaugeType(address _gAddr) external view returns (uint128);
 
-    /// @notice Get Gauge relative weight (not more than 1.0) normalized to 1e18
+    ///  @notice Get gauge relative weight (not more than 1.0), normalized to 1e18
     ///         (e.g. 1.0 == 1e18). Inflation which will be received by it is
     ///         inflation_rate * relative_weight / 1e18
-    /// @param _gAddr Gauge address
-    /// @param _time Relative weight at the specified timestamp in the past or present
-    /// @return Value of relative weight normalized to 1e18
+    ///  @param _gAddr Gauge address
+    ///  @param _time Timestamp
+    ///  @return Gauge relative weight, normalized to 1e18
     function gaugeRelativeWeight(address _gAddr, uint256 _time)
         external
         view
         returns (uint256);
 
+    ///  @notice Get current gauge relative weight (not more than 1.0), normalized to 1e18
+    ///         (e.g. 1.0 == 1e18). Inflation which will be received by it is
+    ///         inflation_rate * relative_weight / 1e18
+    ///  @param _gAddr Gauge address
+    ///  @return Gauge relative weight, normalized to 1e18
     function gaugeRelativeWeight(address _gAddr)
         external
         view
         returns (uint256);
 
-    /// @notice Get current gauge weight
-    /// @param _gAddr Gauge address
-    /// @return Gauge weight
+    ///  @notice Get current gauge weight
+    ///  @param _gAddr Gauge address
+    ///  @return Gauge weight
     function getGaugeWeight(address _gAddr) external view returns (uint256);
 
-    /// @notice Get the gauge weight at a provided week timestamp.
-    /// @param _gAddr Gauge address
-    /// @param _time Required week timestamp
-    /// @dev _time should be in ((time / WEEK) * WEEK) value.
-    /// @return Returns gauge weight for a week.
+    ///  @notice Get gauge weight
+    ///  @param _gAddr Gauge address
+    ///  @param _time Timestamp
+    ///  @return Gauge weight
     function getGaugeWeight(address _gAddr, uint256 _time)
         external
         view
         returns (uint256);
 
-    /// @notice Get the gaugeWeight - w0 (base weight)
-    /// @param _gAddr gauge address
-    /// @param _time timestamp
-    /// @return returns only the vote weight for the gauge.
-    function getUserVotesWtForGauge(address _gAddr, uint256 _time)
+    ///  @notice Get current gaugeWeight - w0 (base weight)
+    ///  @param _gAddr Gauge address
+    ///  @return Vote weight for the gauge.
+    function getUserVotesWtForGauge(address _gAddr)
         external
         view
         returns (uint256);
+
+    ///  @notice Get gaugeWeight - w0 (base weight)
+    ///  @param _gAddr Gauge address
+    ///  @return Vote weight for the gauge.
+    function getUserVotesWtForGauge(address _gAddr, uint256 _time)
+    external
+    view
+    returns (uint256);
 
     /// @notice Get the user's vote data for a gauge.
     /// @param _user Address of the user
@@ -85,4 +97,115 @@ interface IGaugeController {
         external
         view
         returns (VoteData memory);
+
+    ///  @notice Get current gauge base weight
+    ///  @param _gAddr Gauge address
+    ///  @return Gauge base weight
+    function getGaugeBaseWeight(address _gAddr)
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Get gauge base weight
+    ///  @param _gAddr Gauge address
+    ///  @param _time Timestamp
+    ///  @return Gauge base weight
+    function getGaugeBaseWeight(address _gAddr, uint256 _time)
+        external
+        view
+        returns (uint256);
+
+    /// @notice Get current type weight
+    ///  @param _gType Type id
+    ///  @return Type weight
+    function getTypeWeight(uint128 _gType)
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Get type weight
+    ///  @param _gType Type id
+    ///  @param _time Timestamp
+    ///  @return Type weight
+    function getTypeWeight(uint128 _gType, uint256 _time)
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Get current total (type-weighted) weight
+    ///  @return Total weight
+    function getTotalWeight()
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Get total (type-weighted) weight
+    ///  @param _time Timestamp
+    ///  @return Total weight
+    function getTotalWeight(uint256 _time)
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Get current sum of gauge weights per type
+    ///  @param _gType Type id
+    ///  @return Sum of gauge weights
+    function getWeightsSumPerType(uint128 _gType)
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Get sum of gauge weights per type
+    ///  @param _gType Type id
+    ///  @param _time Timestamp
+    ///  @return Sum of gauge weights
+    function getWeightsSumPerType(uint128 _gType, uint256 _time)
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Returns address of all registered gauges.
+    function getGaugeList()
+        external
+        view
+        returns (address[] memory);
+
+    ///  @notice Get last gauge weight schedule time
+    ///  @param _gAddr Gauge address
+    ///  @return Last schedule time
+    function getLastGaugeWtScheduleTime(address _gAddr)
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Get last gauge base weight schedule time
+    ///  @param _gAddr Gauge address
+    ///  @return Last schedule time
+    function getLastGaugeBaseWtScheduleTime(address _gAddr)
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Get last type weight schedule time
+    ///  @param _gType Gauge type
+    ///  @return Last schedule time
+    function getLastTypeWtScheduleTime(uint128 _gType)
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Get last sum weight schedule time for a gauge type
+    ///  @param _gType Gauge type
+    ///  @return Last schedule time
+    function getLastSumWtScheduleTime(uint128 _gType)
+        external
+        view
+        returns (uint256);
+
+    ///  @notice Get last total weight schedule time
+    ///  @return Last schedule time
+    function getLastTotalWtScheduleTime()
+        external
+        view
+        returns (uint256);
 }

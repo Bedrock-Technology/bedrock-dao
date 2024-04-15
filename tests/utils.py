@@ -9,3 +9,6 @@ def get_week(n=0):
 def estimatedVotingPower(amount, ts):
     slope = math.floor(amount/(4 * 365 * 24 * 60 * 60))
     return slope * ts
+
+def estimatedLockAmt(votingPower, weeks):
+    return math.floor((4 * 365 * votingPower) / (weeks * 7))
