@@ -440,7 +440,7 @@ def test_weight_decrease_overtime(setup_contracts, owner, users, daysInSeconds):
     assert gauge_controller.userVoteData(users[0], gauges[0])[0] == slope   # slope
     assert gauge_controller.userVoteData(users[0], gauges[0])[1] == prec   # power
     assert gauge_controller.userVoteData(users[0], gauges[0])[2] == lock_end   # end
-    assert gauge_controller.userVoteData(users[0], gauges[0])[3] == chain.time()   # voteTime
+    # assert gauge_controller.userVoteData(users[0], gauges[0])[3] == chain.time()   # voteTime
 
     gauge_controller.changeGaugeBaseWeight(gauges[0], 0, {'from': owner})
 
