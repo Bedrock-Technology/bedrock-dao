@@ -4,7 +4,7 @@ import pytest
 Test vote for gauge weight - happy path
 """
 def test_addBribeERC20(setup_contracts, owner):
-    penpie_adapter, bribeManager, transparent_token = setup_contracts[3], setup_contracts[4], setup_contracts[0]
+    penpie_adapter, bribeManager, transparent_token = setup_contracts[3], setup_contracts[5], setup_contracts[0]
 
     transparent_token.mint(penpie_adapter, 100e18, {"from": owner})
     assert transparent_token.balanceOf(penpie_adapter) == 100e18

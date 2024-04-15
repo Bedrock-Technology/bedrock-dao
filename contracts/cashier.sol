@@ -16,7 +16,7 @@
 pragma solidity ^0.8.9;
 
 import "interfaces/IGaugeController.sol";
-import "interfaces/IStaking.sol";
+import "interfaces/IRewardReceiver.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -119,8 +119,8 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
         uint256 rewards = (globalWeekEmission * gaugeRelativeWt) / (MULTIPLIER);
         return rewards;
     }
-    
-    /** 
+
+    /**
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      * 
      *      INTERNAL HELPER 
@@ -145,7 +145,7 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
 
         // Relative weights are always calculated based on the current cycle.
         uint256 gaugeRelativeWt = IGaugeController(gaugeController)
-            .gaugeRelativeWeightWrite(_gAddr);
+            .gaugeRelativeWeight(_gAddr);
 
         if (gaugeRelativeWt == 0) return;
          
@@ -156,7 +156,7 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
 
         // notify staking with updateReward() if it's a contract
         if (_gAddr.isContract()) {
-            IStaking(_gAddr).updateReward();
+            IRewardReceiver(_gAddr).updateReward();
         }
 
         emit RewardsDistributed(_gAddr, rewards);

@@ -14,7 +14,6 @@
 // ⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀
 pragma solidity ^0.8.9;
 
-import "interfaces/IStaking.sol";
 import "interfaces/IVotingEscrow.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -26,7 +25,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
   * @title Rockx Voting-escrow Rewards Contract
   * @author RockX Team
   */
-contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
+contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
 
     uint256 public constant WEEK = 604800;
@@ -40,11 +39,6 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     address public rewardToken; // the reward token to distribute to users as rewards
     uint256 public genesisWeek; // the genesis week the contract has deployed
     uint256 public accountedRewards; // for tracking rewards allocated
-
-    /**
-     * @dev empty reserved space for future adding of variables
-     */
-    uint256[32] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -123,7 +117,7 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     /**
      * @dev updateReward, make sure this is called once a week if no one claims.
      */
-    function updateReward() external override { _updateReward(); }
+    function updateReward() external { _updateReward(); }
 
     /**
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -173,12 +167,13 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
                 break;
             }
             settleToWeek = nextWeek;
+            uint256 preSettleWeek = settleToWeek - WEEK;
 
             // get total supply of the week
-            uint256 totalSupply = IVotingEscrow(votingEscrow).totalSupply(settleToWeek);
+            uint256 totalSupply = IVotingEscrow(votingEscrow).totalSupply(preSettleWeek);
             if (totalSupply > 0) {  // avert division by zero 
                 profits += weeklyProfits[settleToWeek]
-                            * IVotingEscrow(votingEscrow).balanceOf(account, settleToWeek)
+                            * IVotingEscrow(votingEscrow).balanceOf(account, preSettleWeek)
                             / totalSupply;
             }
         }
