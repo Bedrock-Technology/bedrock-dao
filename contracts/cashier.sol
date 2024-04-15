@@ -119,8 +119,8 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
         uint256 rewards = (globalWeekEmission * gaugeRelativeWt) / (MULTIPLIER);
         return rewards;
     }
-    
-    /** 
+
+    /**
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      * 
      *      INTERNAL HELPER 
@@ -145,7 +145,7 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
 
         // Relative weights are always calculated based on the current cycle.
         uint256 gaugeRelativeWt = IGaugeController(gaugeController)
-            .gaugeRelativeWeightWrite(_gAddr);
+            .gaugeRelativeWeight(_gAddr);
 
         if (gaugeRelativeWt == 0) return;
          
