@@ -86,6 +86,7 @@ def main():
         bedrock_dao.name(),
         bedrock_dao.symbol(),
         bedrock_dao.address,
+        gauge_controller_transparent,
         {'from': owner})
     gauge_controller_transparent.initialize(voting_escrow_transparent.address, {'from': owner})
     ve_rewards_transparent.initialize(voting_escrow_transparent.address, bedrock_dao.address, {'from': owner})
@@ -111,7 +112,7 @@ def main():
         bribe_manager_transparent.address,
         {'from': owner})
 
-    print("Initial Contract Status Check ......")
+    print("Initial Contract Status Check ......")   # TODO: Checking more status
 
     assert bedrock_dao.name() == "Bedrock DAO"
     assert bedrock_dao.symbol() == "BRT"
@@ -119,6 +120,7 @@ def main():
     assert voting_escrow_transparent.name() == bedrock_dao.name()
     assert voting_escrow_transparent.symbol() == bedrock_dao.symbol()
     assert voting_escrow_transparent.assetToken() == bedrock_dao.address
+    assert voting_escrow_transparent.gaugeController() == gauge_controller_transparent.address
 
     assert gauge_controller_transparent.votingEscrow() == voting_escrow_transparent.address
 
