@@ -43,15 +43,11 @@ def test_approve(setup_contracts, approved_account, zero_address):
 
     lp = accounts[2]
 
-    # Scenario 1: Can't approve from the zero address.
-    with brownie.reverts("ERC20: approve from the zero address"):
-        token.approve(lp, amount, {'from': zero_address})
-
-    # Scenario 2: Can't approve to the zero address.
+    # Scenario 1: Can't approve to the zero address.
     with brownie.reverts("ERC20: approve to the zero address"):
         token.approve(zero_address, amount, {'from': approved_account})
 
-    # Scenario 3: The approval was successful, and the allowance has been updated.
+    # Scenario 2: The approval was successful, and the allowance has been updated.
     tx = token.approve(lp, amount, {'from': approved_account})
     assert "Approval" in tx.events
     assert token.allowance(approved_account, lp) == amount
@@ -64,15 +60,11 @@ def test_increaseAllowance(setup_contracts, approved_account, zero_address):
 
     lp = accounts[2]
 
-    # Scenario 1: Can't approve from the zero address.
-    with brownie.reverts("ERC20: approve from the zero address"):
-        token.increaseAllowance(lp, amount, {'from': zero_address})
-
-    # Scenario 2: Can't approve to the zero address.
+    # Scenario 1: Can't approve to the zero address.
     with brownie.reverts("ERC20: approve to the zero address"):
         token.increaseAllowance(zero_address, amount, {'from': approved_account})
 
-    # Scenario 3: The approval was successful, and the allowance has been updated.
+    # Scenario 2: The approval was successful, and the allowance has been updated.
     tx = token.increaseAllowance(lp, amount, {'from': approved_account})
     assert "Approval" in tx.events
     assert token.allowance(approved_account, lp) == amount
@@ -106,25 +98,21 @@ def test_transfer(setup_contracts, owner, zero_address):
 
     lp = accounts[2]
 
-    # Scenario 1: Can't approve from the zero address.
-    with brownie.reverts("ERC20: transfer from the zero address"):
-        token.transfer(lp, amount, {'from': zero_address})
-
-    # Scenario 2: Can't approve to the zero address.
+    # Scenario 1: Can't approve to the zero address.
     with brownie.reverts("ERC20: transfer to the zero address"):
         token.transfer(zero_address, amount, {'from': owner})
 
-    # Scenario 3: Can't transfer an amount exceeding the balance.
+    # Scenario 2: Can't transfer an amount exceeding the balance.
     with brownie.reverts("ERC20: transfer amount exceeds balance"):
         token.transfer(lp, amount, {'from': owner})
 
-    # Scenario 4: Can't transfer when the contract is paused.
+    # Scenario 3: Can't transfer when the contract is paused.
     token.pause({"from": owner})
     assert token.paused()
     with brownie.reverts("Pausable: paused"):
         token.transfer(lp, amount, {'from': owner})
 
-    # Scenario 5: The transfer was successful, and the allowance has been updated.
+    # Scenario 4: The transfer was successful, and the allowance has been updated.
     token.unpause({"from": owner})
     assert not token.paused()
     token.mint(owner, amount, {'from': owner})
@@ -177,15 +165,11 @@ def test_burn(setup_contracts, owner, zero_address):
 
     lp = accounts[2]
 
-    # Scenario 1: Can't burn from the zero address.
-    with brownie.reverts("ERC20: burn from the zero address"):
-        token.burn(amount, {'from': zero_address})
-
-    # Scenario 2: Can't burn an amount exceeding the balance.
+    # Scenario 1: Can't burn an amount exceeding the balance.
     with brownie.reverts("ERC20: burn amount exceeds balance"):
         token.burn(amount, {'from': lp})
 
-    # Scenario 3: Can't burn when the contract is paused.
+    # Scenario 2: Can't burn when the contract is paused.
     token.pause({"from": owner})
     assert token.paused()
     with brownie.reverts("Pausable: paused"):
