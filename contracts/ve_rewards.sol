@@ -41,11 +41,6 @@ contract VeRewards is IStaking, Initializable, OwnableUpgradeable, PausableUpgra
     uint256 public genesisWeek; // the genesis week the contract has deployed
     uint256 public accountedRewards; // for tracking rewards allocated
 
-    /**
-     * @dev empty reserved space for future adding of variables
-     */
-    uint256[32] private __gap;
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
