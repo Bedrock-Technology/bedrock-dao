@@ -727,6 +727,8 @@ def test_voteForGaugeWeight(setup_contracts, owner, users, daysInSeconds):
         tx = gauge_controller.voteForGaugeWeight(gauges[i], prec, {'from': users[i]})
         assert "GaugeVoted" in tx.events
 
+        assert gauge_controller.userVotePower(users[i]) == prec
+
         assert gauge_controller.userVoteData(users[i], gauges[i])[0] == slope
         assert gauge_controller.userVoteData(users[i], gauges[i])[1] == prec
         assert gauge_controller.userVoteData(users[i], gauges[i])[2] == lock_end
@@ -749,6 +751,26 @@ def test_voteForGaugeWeight(setup_contracts, owner, users, daysInSeconds):
         assert gauge_controller.getGaugeWeight(gauges[i], get_week(2))/1e18 == 100 + 100*1*week
         assert gauge_controller.getGaugeWeight(gauges[i], get_week(3)) == 100e18
 
+        assert gauge_controller.gaugePoints(gauges[i], get_week())[0] == 100e18
+        assert gauge_controller.gaugePoints(gauges[i], get_week(1))[0]/1e18 == 100 + 100*2*week
+        assert gauge_controller.gaugePoints(gauges[i], get_week(2))[0] == 0
+        assert gauge_controller.gaugePoints(gauges[i], get_week(3))[0] == 0
+
+        assert gauge_controller.gaugePoints(gauges[i], get_week())[1] == 0
+        assert gauge_controller.gaugePoints(gauges[i], get_week(1))[1] == 100*1e18
+        assert gauge_controller.gaugePoints(gauges[i], get_week(2))[1] == 0
+        assert gauge_controller.gaugePoints(gauges[i], get_week(3))[1] == 0
+
+        assert gauge_controller.gaugeSlopeChanges(gauges[i], get_week()) == 0
+        assert gauge_controller.gaugeSlopeChanges(gauges[i], get_week(1)) == 0
+        assert gauge_controller.gaugeSlopeChanges(gauges[i], get_week(2)) == 0
+        assert gauge_controller.gaugeSlopeChanges(gauges[i], get_week(3)) == 100*1e18
+
+        assert gauge_controller.gaugeBaseWtAtTime(gauges[i], get_week()) == 100*1e18
+        assert gauge_controller.gaugeBaseWtAtTime(gauges[i], get_week(1)) == 100*1e18
+        assert gauge_controller.gaugeBaseWtAtTime(gauges[i], get_week(2)) == 0
+        assert gauge_controller.gaugeBaseWtAtTime(gauges[i], get_week(3)) == 0
+
         assert gauge_controller.getUserVotesWtForGauge(gauges[i]) == 0
         assert gauge_controller.getUserVotesWtForGauge(gauges[i], get_week(1)) == 100e18*2*week
         assert gauge_controller.getUserVotesWtForGauge(gauges[i], get_week(2)) == 100e18*1*week
@@ -763,6 +785,21 @@ def test_voteForGaugeWeight(setup_contracts, owner, users, daysInSeconds):
         assert gauge_controller.getWeightsSumPerType(i, get_week(1))/1e18 == 100 + 100*2*week
         assert gauge_controller.getWeightsSumPerType(i, get_week(2))/1e18 == 100 + 100*1*week
         assert gauge_controller.getWeightsSumPerType(i, get_week(3)) == 100e18
+
+        assert gauge_controller.typePoints(i, get_week())[0] == 100e18
+        assert gauge_controller.typePoints(i, get_week(1))[0]/1e18 == 100 + 100*2*week
+        assert gauge_controller.typePoints(i, get_week(2))[0] == 0
+        assert gauge_controller.typePoints(i, get_week(3))[0] == 0
+
+        assert gauge_controller.typePoints(i, get_week())[1] == 0
+        assert gauge_controller.typePoints(i, get_week(1))[1] == 100*1e18
+        assert gauge_controller.typePoints(i, get_week(2))[1] == 0
+        assert gauge_controller.typePoints(i, get_week(3))[1] == 0
+
+        assert gauge_controller.typeSlopeChanges(i, get_week()) == 0
+        assert gauge_controller.typeSlopeChanges(i, get_week(1)) == 0
+        assert gauge_controller.typeSlopeChanges(i, get_week(2)) == 0
+        assert gauge_controller.typeSlopeChanges(i, get_week(3)) == 100*1e18
 
         assert gauge_controller.getTotalWeight() == 2*100e18
         assert gauge_controller.getTotalWeight(get_week(1))/1e18 == 2*(100 + 100*2*week)
