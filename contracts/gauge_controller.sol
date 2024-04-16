@@ -856,8 +856,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     ) private {
         uint128 gType = _getGaugeType(_gAddr);
 
-        _getTypeWeight(gType);
-        uint256 typeWt = typeWtAtTime[gType][_nextTime];
+        uint256 typeWt = _getTypeWeight(gType);
         if (typeWt == 0) {
             require(_newVoteData.power == 0, "Votes for a gauge with zero type weight");
         }
