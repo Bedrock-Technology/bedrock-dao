@@ -304,6 +304,34 @@ def test_balanceOf(setup_contracts, owner, users, daysInSeconds):
                 assert ve.balanceOf(users[0]) == 0
 
         chain.sleep(week)
+        token.mint(users[0], amt, {"from": owner})
+
+
+def test_totalSupply(setup_contracts, owner, users, daysInSeconds):
+    token, ve = setup_contracts[0], setup_contracts[1]
+
+    week = daysInSeconds(7)
+    amt = ve.MAXTIME()*100e18
+    slope = amt / ve.MAXTIME()
+    lock_end = get_week(3)
+
+    # Scenario 1: The total voting power is zero if users have not locked.
+    assert ve.totalSupply() == 0
+
+    for i in range(2):
         token.mint(users[i], amt, {"from": owner})
+        token.approve(ve, amt, {"from": users[i]})
+        ve.createLock(amt, lock_end, {"from": users[i]})
+
+    # Scenario 2: The total voting power will decrease linearly over time until it reaches zero.
+    for i in range(10):
+        ts = chain.time()
+        if ts <= lock_end:
+            assert ve.totalSupply()/1e18 == 2 * int(slope * (lock_end - ts))/1e18
+        else:
+            assert ve.totalSupply() == 0
+
+        chain.sleep(week)
+        token.mint(users[0], amt, {"from": owner})
 
 
