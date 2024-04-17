@@ -55,7 +55,7 @@ def test_createLock(setup_contracts, owner, users, daysInSeconds):
     with brownie.reverts("Exceeds maxtime"):
         ve.createLock(amt, get_week(2) + ve.MAXTIME(), {"from": users[0]})
 
-    # Scenario 4: After lock, the balance will change accordingly,
+    # Scenario 6: After lock, the balance will change accordingly,
     # and the historical data point should be updated.
     lock_end = get_week(weeks_in_lock+1)
     token.approve(ve, amt, {"from": users[0]})
@@ -100,72 +100,92 @@ def test_createLock(setup_contracts, owner, users, daysInSeconds):
     assert abs(ve.totalSupplyAt(chain.height) - (lock_end-chain.time()) * slope) <= slope
 
 
-# # TODO: To be optimized
-# """
-# Test inrease lock amount - happy path
-# """
-# def test_increase_lock_amount__happy_path(setup_contracts, owner, floorToWeek, daysInSeconds):
-#
-#     token, ve = setup_contracts[0], setup_contracts[1]
-#     amount = 100e18
-#
-#     account = accounts[2]
-#     token.mint(account, amount, {"from": owner})
-#     token.approve(ve, amount, {"from": account})
-#
-#     lockEnd = floorToWeek(chain.time() + daysInSeconds(365))
-#
-#     tx = ve.createLock(amount/2, lockEnd, {"from": account})
-#
-#     assert "Locked" in tx.events
-#     assert token.balanceOf(account) == amount/2
-#     assert ve.locked(account)[0] == amount/2 # locked amount
-#     assert ve.locked(account)[1] == lockEnd # lock end
-#
-#     _, _, ts = ve.getLastUserPoint(account)
-#     slope = math.floor((amount/2)/(4*daysInSeconds(365)))
-#     assert ve.balanceOf(account) == slope * (ve.lockEnd(account) - ts)
-#
-#     chain.sleep(daysInSeconds(60))
-#
-#     ve.increaseLockAmount(amount/2, {"from": account})
-#
-#     assert "Locked" in tx.events
-#     assert token.balanceOf(account) == 0
-#     assert ve.locked(account)[0] == amount
-#     assert ve.locked(account)[1] == lockEnd
-#
-#     _, _, ts = ve.getLastUserPoint(account)
-#     slope = math.floor(amount/(4*daysInSeconds(365)))
-#     assert ve.balanceOf(account) == slope * (ve.lockEnd(account) - ts)
-#
-# # TODO: To be optimized
-# """
-# Test inrease lock amount - revert path
-# """
-# def test_increase_lock_amount__revert_path(setup_contracts, owner, floorToWeek, daysInSeconds):
-#
-#     token, ve = setup_contracts[0], setup_contracts[1]
-#     amount = 100e18
-#
-#     account = accounts[2]
-#     token.mint(account, amount, {"from": owner})
-#     token.approve(ve, amount, {"from": account})
-#
-#     with brownie.reverts("Must stake non zero amount"):
-#         ve.increaseLockAmount(0, {"from": account}) # value cannot be zero
-#
-#     with brownie.reverts("No existing lock found"):
-#         ve.increaseLockAmount(amount, {"from": account}) # no existing lock
-#
-#     tx = ve.createLock(amount, floorToWeek(chain.time() + daysInSeconds(365)), {"from": account})
-#     assert "Locked" in tx.events
-#
-#     chain.sleep(daysInSeconds(365))
-#
-#     with brownie.reverts("Cannot add to expired lock. Withdraw"):
-#         ve.increaseLockAmount(amount, {"from": account}) # lock end has passed
-#
+def test_increaseLockAmount(setup_contracts, owner, users, daysInSeconds):
+    token, ve = setup_contracts[0], setup_contracts[1]
+
+    week = daysInSeconds(7)
+    amt = ve.MAXTIME()*100e18
+    weeks_in_lock = 2
+
+    token.mint(users[0], amt, {"from": owner})
+    token.approve(ve, amt, {"from": users[0]})
+    lock_end = get_week(weeks_in_lock+1)
+
+    # Scenario 1: Cannot lock while the contract is paused.
+    ve.pause({"from": owner})
+    assert ve.paused()
+
+    with brownie.reverts("Pausable: paused"):
+        ve.increaseLockAmount(amt, {"from": users[0]})
+
+    ve.unpause({"from": owner})
+    assert not ve.paused()
+
+    # Scenario 2: Cannot lock zero value
+    with brownie.reverts("Must stake non zero amount"):
+        ve.increaseLockAmount(0, {"from": users[0]})
+
+    # Scenario 3: Cannot increase amount if there is no existing lock
+    with brownie.reverts("No existing lock found"):
+        ve.increaseLockAmount(amt, {"from": users[0]})
+
+    # Scenario 4: Cannot increase amount if the lock has expired
+    tx = ve.createLock(amt, lock_end, {"from": users[0]})
+    assert "Locked" in tx.events
+
+    chain.sleep(weeks_in_lock*week+week)
+    with brownie.reverts("Cannot add to expired lock. Withdraw"):
+        ve.increaseLockAmount(amt, {"from": users[0]})
+
+    tx = ve.withdraw({"from": users[0]})
+    assert "Unlocked" in tx.events
+
+    # Scenario 5: After amount increase, the balance will change accordingly,
+    # and the historical data point should be updated.
+    lock_end = get_week(weeks_in_lock+1)
+    token.approve(ve, amt, {"from": users[0]})
+    ve.createLock(amt/2, lock_end, {"from": users[0]})
+    tx = ve.increaseLockAmount(amt/2, {"from": users[0]})
+    assert "Locked" in tx.events
+
+    assert ve.userPointEpoch(users[0]) == 4
+    assert ve.globalEpoch() == 7
+
+    assert ve.totalLocked() == amt
+
+    assert ve.locked(users[0])[0] == amt
+    assert ve.locked(users[0])[1] == lock_end
+    assert ve.lockEnd(users[0]) == lock_end
+
+    bias, slope, ts = ve.getLastUserPoint(users[0])
+    assert bias == (lock_end - ts) * slope
+    assert slope == slope
+    assert abs(ts - chain.time()) <= 1
+
+    user_point_blk = ve.userPointHistory(users[0], ve.userPointEpoch(users[0]))[3]
+    assert user_point_blk == chain.height
+
+    global_point = ve.pointHistory(ve.globalEpoch())
+    assert global_point[0] == (lock_end - ts) * slope
+    assert global_point[1] == slope
+    assert global_point[2] == ts
+    assert global_point[3] == chain.height
+
+    assert abs(ve.balanceOf(users[0]) - (lock_end-chain.time()) * slope) <= slope
+    assert ve.balanceOf(users[0], get_week()) == 0
+    assert ve.balanceOf(users[0], get_week(1)) == 2*week*slope
+    assert ve.balanceOf(users[0], get_week(2)) == week*slope
+    assert ve.balanceOf(users[0], get_week(3)) == 0
+    assert abs(ve.balanceOfAt(users[0], chain.height) - (lock_end-chain.time()) * slope) <= slope
+
+    assert abs(ve.totalSupply() - (lock_end-chain.time()) * slope) <= slope
+    assert ve.totalSupply(get_week()) == 0
+    assert ve.totalSupply(get_week(1)) == 2*week*slope
+    assert ve.totalSupply(get_week(2)) == week*slope
+    assert ve.totalSupply(get_week(3)) == 0
+    assert abs(ve.totalSupplyAt(chain.height) - (lock_end-chain.time()) * slope) <= slope
+
+
 # # TODO: To be optimized
 # """
 # Test increase lock length
