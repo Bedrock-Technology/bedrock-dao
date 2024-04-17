@@ -287,21 +287,57 @@ def test_balanceOf(setup_contracts, owner, users, daysInSeconds):
 
     # Scenario 1: The user's voting power is zero if they have not locked.
     for i in range(2):
-        assert ve.balanceOf(users[0]) == 0
+        assert ve.balanceOf(users[i]) == 0
 
+    # Scenario 2: The user's voting power will decrease linearly over time until it reaches zero.
     for i in range(2):
         token.mint(users[i], amt, {"from": owner})
         token.approve(ve, amt, {"from": users[i]})
         ve.createLock(amt, lock_end, {"from": users[i]})
 
-    # Scenario 2: The user's voting power will decrease linearly over time until it reaches zero.
     for i in range(10):
         ts = chain.time()
         for i in range(2):
             if ts <= lock_end:
-                assert ve.balanceOf(users[0])/1e18 == int(slope * (lock_end - ts))/1e18
+                assert ve.balanceOf(users[i])/1e19 == int(slope * (lock_end - ts))/1e19
             else:
-                assert ve.balanceOf(users[0]) == 0
+                assert ve.balanceOf(users[i]) == 0
+
+        chain.sleep(week)
+        token.mint(users[0], amt, {"from": owner})
+
+
+def test_balanceOf_with_timestamp(setup_contracts, owner, users, daysInSeconds):
+    token, ve = setup_contracts[0], setup_contracts[1]
+
+    week = daysInSeconds(7)
+    amt = ve.MAXTIME()*100e18
+    slope = amt / ve.MAXTIME()
+    lock_end = get_week(3)
+
+    # Scenario 1: The user's voting power is zero if they have not locked.
+    for i in range(2):
+        assert ve.balanceOf(users[0], get_week()) == 0
+
+    # Scenario 2: The user's voting power will decrease linearly over time until it reaches zero.
+    for i in range(2):
+        token.mint(users[i], amt, {"from": owner})
+        token.approve(ve, amt, {"from": users[i]})
+        ve.createLock(amt, lock_end, {"from": users[i]})
+
+    for i in range(2):
+        assert ve.balanceOf(users[i], get_week()) == 0
+        assert ve.balanceOf(users[i], get_week(1)) == slope*2*week
+        assert ve.balanceOf(users[i], get_week(2)) == slope*1*week
+        assert ve.balanceOf(users[i], get_week(3)) == 0
+
+    for i in range(1):
+        ts = chain.time()
+        for i in range(1):
+            if ts <= lock_end:
+                assert ve.balanceOf(users[i], get_week(1))/1e19 == int(slope * (lock_end - get_week(1)))/1e19
+            else:
+                assert ve.balanceOf(users[i], get_week()) == 0
 
         chain.sleep(week)
         token.mint(users[0], amt, {"from": owner})
@@ -318,16 +354,16 @@ def test_totalSupply(setup_contracts, owner, users, daysInSeconds):
     # Scenario 1: The total voting power is zero if users have not locked.
     assert ve.totalSupply() == 0
 
+    # Scenario 2: The total voting power will decrease linearly over time until it reaches zero.
     for i in range(2):
         token.mint(users[i], amt, {"from": owner})
         token.approve(ve, amt, {"from": users[i]})
         ve.createLock(amt, lock_end, {"from": users[i]})
 
-    # Scenario 2: The total voting power will decrease linearly over time until it reaches zero.
     for i in range(10):
         ts = chain.time()
         if ts <= lock_end:
-            assert ve.totalSupply()/1e18 == 2 * int(slope * (lock_end - ts))/1e18
+            assert ve.totalSupply()/1e19 == 2 * int(slope * (lock_end - ts))/1e19
         else:
             assert ve.totalSupply() == 0
 
