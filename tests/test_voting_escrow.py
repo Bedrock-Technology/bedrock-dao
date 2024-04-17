@@ -5,59 +5,101 @@ from brownie import accounts, chain
 from tests.utils import get_week, estimatedVotingPower
 
 
-# # TODO: To be optimized
-# """
-# Test create lock - happy path
-# """
-# def test_createLock__happy_path(setup_contracts, owner, floorToWeek, daysInSeconds):
-#
-#     token, ve = setup_contracts[0], setup_contracts[1]
-#     amount = 100e18
-#
-#     account = accounts[2]
-#     token.mint(account, amount, {"from": owner})
-#     token.approve(ve, amount, {"from": account})
-#
-#     lockEnd = floorToWeek(chain.time() + daysInSeconds(365)) # 1yr lock
-#     tx = ve.createLock(amount, lockEnd, {"from": account})
-#
-#     assert "Locked" in tx.events
-#     assert token.balanceOf(account) == 0
-#     assert ve.locked(account)[0] == amount # locked amount
-#     assert ve.locked(account)[1] == floorToWeek(lockEnd) # lock end
-#
-#     _, _, ts = ve.getLastUserPoint(account)
-#     assert ve.balanceOf(account) == estimatedVotingPower(amount, ve.lockEnd(account) - ts)
-#
-# # TODO: To be optimized
-# """
-# Test create lock - revert path
-# """
-# def test_createLock__revert_path(setup_contracts, owner, floorToWeek, daysInSeconds):
-#
-#     token, ve = setup_contracts[0], setup_contracts[1]
-#     amount = 100e18
-#
-#     account = accounts[2]
-#     token.mint(account, amount, {"from": owner})
-#     token.approve(ve, amount, {"from": account})
-#
-#     lockEnd = floorToWeek(chain.time() + 4*daysInSeconds(365) + daysInSeconds(10)) # 4yr lock
-#     with brownie.reverts():
-#         ve.createLock(amount, lockEnd, {"from": account}) # lock end is past maxtime
-#
-#     lockEnd = floorToWeek(chain.time() - daysInSeconds(10))
-#     with brownie.reverts():
-#         ve.createLock(amount, lockEnd, {"from": account}) # lock end is in past
-#
-#     lockEnd = floorToWeek(chain.time() + daysInSeconds(365)) # 1yr lock
-#     with brownie.reverts():
-#         ve.createLock(0, lockEnd, {"from": account}) # lock amount is 0
-#
-#     ve.createLock(amount, lockEnd, {"from": account}) # lock amount
-#     with brownie.reverts():
-#         ve.createLock(amount, lockEnd, {"from": account}) # lock again without withdrawing old tokens first
-#
+def test_createLock(setup_contracts, owner, users, daysInSeconds):
+    token, ve = setup_contracts[0], setup_contracts[1]
+
+    week = daysInSeconds(7)
+    amt = ve.MAXTIME()*100e18
+    weeks_in_lock = 2
+
+    token.mint(users[0], amt, {"from": owner})
+    token.approve(ve, amt, {"from": users[0]})
+    lock_end = get_week(weeks_in_lock+1)
+
+    # Scenario 1: Cannot lock while the contract is paused.
+    ve.pause({"from": owner})
+    assert ve.paused()
+
+    with brownie.reverts("Pausable: paused"):
+        ve.createLock(amt, lock_end, {"from": users[0]})
+
+    ve.unpause({"from": owner})
+    assert not ve.paused()
+
+    # Scenario 2: Cannot lock zero value
+    with brownie.reverts("Must stake non zero amount"):
+        ve.createLock(0, lock_end, {"from": users[0]})
+
+    # Scenario 3: Cannot create a new lock if a locked amount already exists.
+    tx = ve.createLock(amt, lock_end, {"from": users[0]})
+    assert "Locked" in tx.events
+
+    bias, slope, ts = ve.getFirstUserPoint(users[0])
+    assert bias == (lock_end - ts) * slope
+    assert slope == slope
+    assert abs(ts - chain.time()) <= 1
+
+    for i in range(2):
+        with brownie.reverts("Withdraw old tokens first"):
+            ve.createLock(amt, lock_end, {"from": users[0]})
+        chain.sleep(weeks_in_lock*week + week)
+
+    tx = ve.withdraw({"from": users[0]})
+    assert "Unlocked" in tx.events
+
+    # Scenario 4: Cannot lock if the specified end time has already passed.
+    with brownie.reverts("Can only lock until time in the future"):
+        ve.createLock(amt, get_week(), {"from": users[0]})
+
+    # Scenario 5: Cannot lock if the specified end time exceeds the maximum time limit.
+    with brownie.reverts("Exceeds maxtime"):
+        ve.createLock(amt, get_week(2) + ve.MAXTIME(), {"from": users[0]})
+
+    # Scenario 4: After lock, the balance will change accordingly,
+    # and the historical data point should be updated.
+    lock_end = get_week(weeks_in_lock+1)
+    token.approve(ve, amt, {"from": users[0]})
+    tx = ve.createLock(amt, lock_end, {"from": users[0]})
+    assert "Locked" in tx.events
+
+    assert ve.userPointEpoch(users[0]) == 3
+    assert ve.globalEpoch() == 9
+
+    assert ve.totalLocked() == amt
+
+    assert ve.locked(users[0])[0] == amt
+    assert ve.locked(users[0])[1] == lock_end
+    assert ve.lockEnd(users[0]) == lock_end
+
+    bias, slope, ts = ve.getLastUserPoint(users[0])
+    assert bias == (lock_end - ts) * slope
+    assert slope == slope
+    assert abs(ts - chain.time()) <= 1
+
+    user_point_blk = ve.userPointHistory(users[0], ve.userPointEpoch(users[0]))[3]
+    assert user_point_blk == chain.height
+
+    global_point = ve.pointHistory(ve.globalEpoch())
+    assert global_point[0] == (lock_end - ts) * slope
+    assert global_point[1] == slope
+    assert global_point[2] == ts
+    assert global_point[3] == chain.height
+
+    assert abs(ve.balanceOf(users[0]) - (lock_end-chain.time()) * slope) <= slope
+    assert ve.balanceOf(users[0], get_week()) == 0
+    assert ve.balanceOf(users[0], get_week(1)) == 2*week*slope
+    assert ve.balanceOf(users[0], get_week(2)) == week*slope
+    assert ve.balanceOf(users[0], get_week(3)) == 0
+    assert abs(ve.balanceOfAt(users[0], chain.height) - (lock_end-chain.time()) * slope) <= slope
+
+    assert abs(ve.totalSupply() - (lock_end-chain.time()) * slope) <= slope
+    assert ve.totalSupply(get_week()) == 0
+    assert ve.totalSupply(get_week(1)) == 2*week*slope
+    assert ve.totalSupply(get_week(2)) == week*slope
+    assert ve.totalSupply(get_week(3)) == 0
+    assert abs(ve.totalSupplyAt(chain.height) - (lock_end-chain.time()) * slope) <= slope
+
+
 # # TODO: To be optimized
 # """
 # Test inrease lock amount - happy path
@@ -209,8 +251,10 @@ def test_withdraw(setup_contracts, owner, users, daysInSeconds):
     token.mint(users[0], amount, {"from": owner})
     token.approve(ve, amount, {"from": users[0]})
     lock_end = get_week(weeks_in_lock+1)
+
     tx = ve.createLock(amount, lock_end, {"from": users[0]})
     assert "Locked" in tx.events
+    assert token.balanceOf(users[0]) == 0
 
     # Scenario 1: Cannot withdraw when the locked amount is zero
     with brownie.reverts("Must have something to withdraw"):
@@ -235,6 +279,7 @@ def test_withdraw(setup_contracts, owner, users, daysInSeconds):
     chain.sleep(weeks_in_lock*week + week)
     tx = ve.withdraw({"from": users[0]})
     assert "Unlocked" in tx.events
+    assert token.balanceOf(users[0]) == amount
 
     assert ve.userPointEpoch(users[0]) == 2
     assert ve.globalEpoch() == 5
