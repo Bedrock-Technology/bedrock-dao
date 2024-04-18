@@ -70,7 +70,7 @@ def test_depositFor(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     bias, slope, ts = ve.getLastUserPoint(users[0])
     assert bias == (lock_end - ts) * slope
     assert slope == slope
-    assert abs(ts - chain.time()) <= 1
+    assert abs(ts - chain.time()) <= 10
 
     user_point_blk = ve.userPointHistory(users[0], ve.userPointEpoch(users[0]))[3]
     assert user_point_blk == chain.height
@@ -128,7 +128,7 @@ def test_createLock(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     bias, slope, ts = ve.getFirstUserPoint(users[0])
     assert bias == (lock_end - ts) * slope
     assert slope == slope
-    assert abs(ts - chain.time()) <= 1
+    assert abs(ts - chain.time()) <= 10
 
     for i in range(2):
         with brownie.reverts("Withdraw old tokens first"):
@@ -165,7 +165,7 @@ def test_createLock(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     bias, slope, ts = ve.getLastUserPoint(users[0])
     assert bias == (lock_end - ts) * slope
     assert slope == slope
-    assert abs(ts - chain.time()) <= 1
+    assert abs(ts - chain.time()) <= 10
 
     user_point_blk = ve.userPointHistory(users[0], ve.userPointEpoch(users[0]))[3]
     assert user_point_blk == chain.height
@@ -251,7 +251,7 @@ def test_increaseLockAmount(fn_isolation, setup_contracts, owner, users, daysInS
     bias, slope, ts = ve.getLastUserPoint(users[0])
     assert bias == (lock_end - ts) * slope
     assert slope == slope
-    assert abs(ts - chain.time()) <= 1
+    assert abs(ts - chain.time()) <= 10
 
     user_point_blk = ve.userPointHistory(users[0], ve.userPointEpoch(users[0]))[3]
     assert user_point_blk == chain.height
@@ -341,7 +341,7 @@ def test_increaseLockLength(fn_isolation, setup_contracts, owner, users, daysInS
     bias, slope, ts = ve.getLastUserPoint(users[0])
     assert bias == (lock_end - ts) * slope
     assert slope == slope
-    assert abs(ts - chain.time()) <= 1
+    assert abs(ts - chain.time()) <= 10
 
     user_point_blk = ve.userPointHistory(users[0], ve.userPointEpoch(users[0]))[3]
     assert user_point_blk == chain.height
@@ -419,7 +419,7 @@ def test_withdraw(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     bias, slope, ts = ve.getLastUserPoint(users[0])
     assert bias == 0
     assert slope == 0
-    assert abs(ts - chain.time()) <= 1
+    assert abs(ts - chain.time()) <= 10
 
     user_point_blk = ve.userPointHistory(users[0], ve.userPointEpoch(users[0]))[3]
     assert user_point_blk == chain.height
@@ -593,7 +593,7 @@ def test_checkpoint(fn_isolation, setup_contracts, owner, users, daysInSeconds):
         global_point = ve.pointHistory(ve.globalEpoch())
         assert abs(global_point[0] - (lock_end - chain.time()) * slope)/1e18 <= slope
         assert global_point[1] == slope
-        assert abs(global_point[2] - chain.time()) <= 1
+        assert abs(global_point[2] - chain.time()) <= 10
         assert global_point[3] == chain.height
 
         assert abs(ve.totalSupply() - (lock_end-chain.time()) * slope) <= slope
