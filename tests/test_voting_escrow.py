@@ -1,8 +1,7 @@
-import math
 import brownie
 from brownie import accounts, chain
 
-from tests.utils import get_week, estimatedVotingPower
+from tests.utils import get_week
 
 
 def test_depositFor(setup_contracts, owner, users, daysInSeconds):
@@ -566,3 +565,42 @@ def test_totalSupply_with_timestamp(setup_contracts, owner, users, daysInSeconds
 
         chain.sleep(week)
         token.mint(users[0], amt, {"from": owner})
+
+
+def test_checkpoint(setup_contracts, owner, users, daysInSeconds):
+    token, ve = setup_contracts[0], setup_contracts[1]
+
+    week = daysInSeconds(7)
+    amt = ve.MAXTIME()*100e18
+    slope = amt/ve.MAXTIME()
+    weeks_in_lock = 2
+
+    token.mint(users[0], amt, {"from": owner})
+    token.approve(ve, amt, {"from": users[0]})
+    lock_end = get_week(weeks_in_lock+1)
+
+    tx = ve.createLock(amt, lock_end, {"from": users[0]})
+    assert "Locked" in tx.events
+
+    for i in range(5):
+        ve.checkpoint({"from": owner})
+
+        assert ve.userPointEpoch(users[0]) == 1
+        assert ve.globalEpoch() == 2 + i
+
+        assert ve.slopeChanges(lock_end) == -slope
+
+        global_point = ve.pointHistory(ve.globalEpoch())
+        assert abs(global_point[0] - (lock_end - chain.time()) * slope)/1e18 <= slope
+        assert global_point[1] == slope
+        assert abs(global_point[2] - chain.time()) <= 1
+        assert global_point[3] == chain.height
+
+        assert abs(ve.totalSupply() - (lock_end-chain.time()) * slope) <= slope
+        assert ve.totalSupply(get_week()) == 0
+        assert ve.totalSupply(get_week(1)) == 2*week*slope
+        assert ve.totalSupply(get_week(2)) == week*slope
+        assert ve.totalSupply(get_week(3)) == 0
+        assert abs(ve.totalSupplyAt(chain.height) - (lock_end-chain.time()) * slope) <= slope
+
+
