@@ -1,6 +1,8 @@
 from brownie import accounts, chain
 import brownie
 
+from tests.utils import get_week
+
 
 def test_distributeRewards(fn_isolation, setup_contracts, owner, approved_account, floorToWeek, daysInSeconds):
     token, voting_escrow, gauge_controller, penpie_adapter, cashier = (
