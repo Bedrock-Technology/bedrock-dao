@@ -3,71 +3,72 @@ from web3 import Web3
 from pathlib import Path
 from brownie import *
 import math
-import time
 
-deps = project.load(  Path.home() / ".brownie" / "packages" / config["dependencies"][0])
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def w3():
     return Web3(Web3.HTTPProvider('http://localhost:8545'))
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def owner():
     return accounts[0]
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def deployer():
     return accounts[1]
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def approved_account():
     return accounts[2]
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def markets():
     return accounts[3], accounts[4]
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def users():
     return accounts[5], accounts[6]
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def init_type_names():
     return "TYPE0", "TYPE1"
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def init_type_weights():
     return 1, 1
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def init_gauge_base_weights():
     return 100*1e18, 100*1e18
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def oracle():
     return accounts[7]
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def zero_address():
     return accounts.at("0x0000000000000000000000000000000000000000", True)
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def global_week_emission():
     return 100 * 1e18
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def floorToWeek():
     return lambda t : math.floor(t/(86400*7)) * (86400*7)
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def daysInSeconds():
     return lambda days: days * 24 * 60 * 60
 
-@pytest.fixture
-def setup_contracts(owner, deployer, approved_account, global_week_emission, markets, init_type_names, init_type_weights, init_gauge_base_weights):
-    chain.reset()
-    TransparentUpgradeableProxy = deps.TransparentUpgradeableProxy
+@pytest.fixture(scope="session", autouse=True)
+def proxy():
+    # Reference: https://docs.openzeppelin.com/contracts/4.x/api/proxy#TransparentUpgradeableProxy
+    deps = project.load(  Path.home() / ".brownie" / "packages" / config["dependencies"][0])
+    return deps.TransparentUpgradeableProxy
 
+@pytest.fixture()
+def setup_contracts(proxy, owner, deployer, approved_account, global_week_emission, markets, init_type_names, init_type_weights, init_gauge_base_weights):
     # ----------Implementation Contract Deployment----------
     mock_bribe_manager_contract = BribeManager.deploy({'from': deployer})
     penpie_adapter1 = PenpieAdapter.deploy({'from': deployer})
@@ -80,14 +81,14 @@ def setup_contracts(owner, deployer, approved_account, global_week_emission, mar
     cashier = Cashier.deploy({'from': deployer})
 
     # ----------Proxy Contract Deployment----------
-    mock_bribe_manager_proxy = TransparentUpgradeableProxy.deploy(mock_bribe_manager_contract, deployer, b'',{'from': deployer})
-    penpie_adapter_proxy1 = TransparentUpgradeableProxy.deploy(penpie_adapter1, deployer, b'',{'from': deployer})
-    penpie_adapter_proxy2 = TransparentUpgradeableProxy.deploy(penpie_adapter2, deployer, b'',{'from': deployer})
+    mock_bribe_manager_proxy = proxy.deploy(mock_bribe_manager_contract, deployer, b'', {'from': deployer})
+    penpie_adapter_proxy1 = proxy.deploy(penpie_adapter1, deployer, b'', {'from': deployer})
+    penpie_adapter_proxy2 = proxy.deploy(penpie_adapter2, deployer, b'', {'from': deployer})
 
-    ve_proxy = TransparentUpgradeableProxy.deploy(ve_contract, deployer, b'',{'from': deployer})
-    gauge_proxy = TransparentUpgradeableProxy.deploy(gauge_contract, deployer, b'',{'from': deployer})
-    ve_rewards_proxy = TransparentUpgradeableProxy.deploy(ve_rewards, deployer, b'',{'from': deployer})
-    cashier_proxy = TransparentUpgradeableProxy.deploy(cashier, deployer, b'',{'from': deployer})
+    ve_proxy = proxy.deploy(ve_contract, deployer, b'', {'from': deployer})
+    gauge_proxy = proxy.deploy(gauge_contract, deployer, b'', {'from': deployer})
+    ve_rewards_proxy = proxy.deploy(ve_rewards, deployer, b'', {'from': deployer})
+    cashier_proxy = proxy.deploy(cashier, deployer, b'', {'from': deployer})
 
     # ----------Transparent Contract Creating----------
     transparent_mock_bribe_manager = Contract.from_abi("BribeManager", mock_bribe_manager_proxy.address, BribeManager.abi)

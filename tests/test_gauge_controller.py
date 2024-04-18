@@ -1,14 +1,13 @@
 import brownie
 from brownie import accounts, chain
 import math
-import time
 import secrets
 import os
 
-from tests.utils import get_week, estimatedLockAmt, estimatedVotingPower
+from tests.utils import get_week, estimatedLockAmt
 
 
-def test_addType(setup_contracts, owner):
+def test_addType(fn_isolation, setup_contracts, owner):
     gauge_controller = setup_contracts[2]
     wt = 1
     oracle = accounts[4]
@@ -59,7 +58,7 @@ def test_addType(setup_contracts, owner):
         gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
 
 
-def test_changeTypeWeight(setup_contracts, owner, oracle, daysInSeconds):
+def test_changeTypeWeight(fn_isolation, setup_contracts, owner, oracle, daysInSeconds):
     gauge_controller = setup_contracts[2]
     week = daysInSeconds(7)
     start_week = get_week(0)
@@ -106,7 +105,7 @@ def test_changeTypeWeight(setup_contracts, owner, oracle, daysInSeconds):
         assert gauge_controller.getLastTypeWtScheduleTime(1) == type_wt_schedule_time
 
 
-def test_addGauge(setup_contracts, owner, oracle, zero_address, w3):
+def test_addGauge(fn_isolation, setup_contracts, owner, oracle, zero_address, w3):
     gauge_controller = setup_contracts[2]
     fake_gauge = w3.eth.account.create(os.urandom(32)).address
     weight = 200*1e18
@@ -180,7 +179,7 @@ def test_addGauge(setup_contracts, owner, oracle, zero_address, w3):
     assert gauge_controller.getLastTotalWtScheduleTime() == get_week(1)
 
 
-def test_changeGaugeBaseWeight(setup_contracts, owner, oracle, w3):
+def test_changeGaugeBaseWeight(fn_isolation, setup_contracts, owner, oracle, w3):
     gauge_controller = setup_contracts[2]
     fake_gauge = w3.eth.account.create(os.urandom(32)).address
     weight = 300*1e18
@@ -232,7 +231,7 @@ def test_changeGaugeBaseWeight(setup_contracts, owner, oracle, w3):
     assert gauge_controller.getLastTotalWtScheduleTime() == get_week(1)
 
 
-def test_checkpoint(setup_contracts, owner, daysInSeconds):
+def test_checkpoint(fn_isolation, setup_contracts, owner, daysInSeconds):
     gauge_controller = setup_contracts[2]
     week = daysInSeconds(7)
     week0 = get_week(0)
@@ -283,7 +282,7 @@ def test_checkpoint(setup_contracts, owner, daysInSeconds):
         assert gauge_controller.getWeightsSumPerType(0, get_week(2)) == 100*1e18
 
 
-def test_checkpointGauge(setup_contracts, owner, daysInSeconds):
+def test_checkpointGauge(fn_isolation, setup_contracts, owner, daysInSeconds):
     gauge_controller = setup_contracts[2]
     week = daysInSeconds(7)
     week0 = get_week(0)
@@ -342,7 +341,7 @@ def test_checkpointGauge(setup_contracts, owner, daysInSeconds):
         assert gauge_controller.getWeightsSumPerType(0, get_week(2)) == 100*1e18
 
 
-def test_checkpointGauge_in_batch(setup_contracts, owner, daysInSeconds):
+def test_checkpointGauge_in_batch(fn_isolation, setup_contracts, owner, daysInSeconds):
     gauge_controller = setup_contracts[2]
     week = daysInSeconds(7)
     week0 = get_week(0)
@@ -402,7 +401,7 @@ def test_checkpointGauge_in_batch(setup_contracts, owner, daysInSeconds):
         gauge_controller.checkpointGauge({'from': owner})
 
 
-def test_weight_decrease_overtime(setup_contracts, owner, users, daysInSeconds):
+def test_weight_decrease_overtime(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, voting_escrow, gauge_controller = (
         setup_contracts[0], setup_contracts[1], setup_contracts[2])
 
@@ -650,7 +649,7 @@ def test_weight_decrease_overtime(setup_contracts, owner, users, daysInSeconds):
     assert gauge_controller.getWeightsSumPerType(1, week3) == 100e18
 
 
-def test_voteForGaugeWeight(setup_contracts, owner, users, daysInSeconds):
+def test_voteForGaugeWeight(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, voting_escrow, gauge_controller = (
         setup_contracts[0], setup_contracts[1], setup_contracts[2])
 

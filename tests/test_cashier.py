@@ -1,10 +1,8 @@
 from brownie import accounts, chain
 import brownie
 
-from tests.utils import get_week
 
-
-def test_distributeRewards(setup_contracts, owner, approved_account, floorToWeek, daysInSeconds):
+def test_distributeRewards(fn_isolation, setup_contracts, owner, approved_account, floorToWeek, daysInSeconds):
     token, voting_escrow, gauge_controller, penpie_adapter, cashier = (
         setup_contracts[0], setup_contracts[1], setup_contracts[2], setup_contracts[3],
         setup_contracts[7])
@@ -67,7 +65,7 @@ def test_distributeRewards(setup_contracts, owner, approved_account, floorToWeek
         assert cashier.nextRewardTime(penpie_adapter) == s['NextRewardTime']
 
 
-def test_currentRewards(setup_contracts, owner, approved_account, floorToWeek, daysInSeconds):
+def test_currentRewards(fn_isolation, setup_contracts, owner, approved_account, floorToWeek, daysInSeconds):
     token, voting_escrow, gauge_controller, penpie_adapter1, penpie_adapter2, cashier = (
         setup_contracts[0], setup_contracts[1], setup_contracts[2], setup_contracts[3], setup_contracts[4],
         setup_contracts[7])
@@ -119,7 +117,7 @@ def test_currentRewards(setup_contracts, owner, approved_account, floorToWeek, d
         assert cashier.currentRewards(penpie_adapter) == amount/2
         assert cashier.nextRewardTime(penpie_adapter) == start_week + 2 * week
 
-def test_setGlobalEmissionRate(setup_contracts, owner):
+def test_setGlobalEmissionRate(fn_isolation, setup_contracts, owner):
     cashier = setup_contracts[7]
 
     amount = cashier.globalWeekEmission()

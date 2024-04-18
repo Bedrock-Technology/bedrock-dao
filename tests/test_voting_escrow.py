@@ -4,7 +4,7 @@ from brownie import accounts, chain
 from tests.utils import get_week
 
 
-def test_depositFor(setup_contracts, owner, users, daysInSeconds):
+def test_depositFor(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
     week = daysInSeconds(7)
@@ -96,7 +96,7 @@ def test_depositFor(setup_contracts, owner, users, daysInSeconds):
     assert abs(ve.totalSupplyAt(chain.height) - (lock_end-chain.time()) * slope) <= slope
 
 
-def test_createLock(setup_contracts, owner, users, daysInSeconds):
+def test_createLock(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
     week = daysInSeconds(7)
@@ -191,7 +191,7 @@ def test_createLock(setup_contracts, owner, users, daysInSeconds):
     assert abs(ve.totalSupplyAt(chain.height) - (lock_end-chain.time()) * slope) <= slope
 
 
-def test_increaseLockAmount(setup_contracts, owner, users, daysInSeconds):
+def test_increaseLockAmount(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
     week = daysInSeconds(7)
@@ -277,7 +277,7 @@ def test_increaseLockAmount(setup_contracts, owner, users, daysInSeconds):
     assert abs(ve.totalSupplyAt(chain.height) - (lock_end-chain.time()) * slope) <= slope
 
 
-def test_increaseLockLength(setup_contracts, owner, users, daysInSeconds):
+def test_increaseLockLength(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
     week = daysInSeconds(7)
@@ -367,7 +367,7 @@ def test_increaseLockLength(setup_contracts, owner, users, daysInSeconds):
     assert abs(ve.totalSupplyAt(chain.height) - (lock_end-chain.time()) * slope) <= slope
 
 
-def test_withdraw(setup_contracts, owner, users, daysInSeconds):
+def test_withdraw(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
     amount = 100e18
@@ -439,7 +439,7 @@ def test_withdraw(setup_contracts, owner, users, daysInSeconds):
     assert ve.totalSupply(chain.height) == 0
 
 
-def test_balanceOf(setup_contracts, owner, users, daysInSeconds):
+def test_balanceOf(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
     week = daysInSeconds(7)
@@ -469,7 +469,7 @@ def test_balanceOf(setup_contracts, owner, users, daysInSeconds):
         token.mint(users[0], amt, {"from": owner})
 
 
-def test_balanceOf_with_timestamp(setup_contracts, owner, users, daysInSeconds):
+def test_balanceOf_with_timestamp(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
     week = daysInSeconds(7)
@@ -505,7 +505,7 @@ def test_balanceOf_with_timestamp(setup_contracts, owner, users, daysInSeconds):
         token.mint(users[0], amt, {"from": owner})
 
 
-def test_totalSupply(setup_contracts, owner, users, daysInSeconds):
+def test_totalSupply(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
     week = daysInSeconds(7)
@@ -533,7 +533,7 @@ def test_totalSupply(setup_contracts, owner, users, daysInSeconds):
         token.mint(users[0], amt, {"from": owner})
 
 
-def test_totalSupply_with_timestamp(setup_contracts, owner, users, daysInSeconds):
+def test_totalSupply_with_timestamp(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
     week = daysInSeconds(7)
@@ -567,7 +567,7 @@ def test_totalSupply_with_timestamp(setup_contracts, owner, users, daysInSeconds
         token.mint(users[0], amt, {"from": owner})
 
 
-def test_checkpoint(setup_contracts, owner, users, daysInSeconds):
+def test_checkpoint(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
     week = daysInSeconds(7)

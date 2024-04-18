@@ -2,7 +2,7 @@ from brownie import accounts
 import brownie
 
 
-def test_mint(setup_contracts, owner, zero_address):
+def test_mint(fn_isolation, setup_contracts, owner, zero_address):
     token = setup_contracts[0]
 
     amount = 1e18
@@ -36,7 +36,7 @@ def test_mint(setup_contracts, owner, zero_address):
     assert token.decimals() == 18
 
 
-def test_approve(setup_contracts, approved_account, zero_address):
+def test_approve(fn_isolation, setup_contracts, approved_account, zero_address):
     token = setup_contracts[0]
 
     amount = 1e18
@@ -57,7 +57,7 @@ def test_approve(setup_contracts, approved_account, zero_address):
     assert token.allowance(approved_account, lp) == amount
 
 
-def test_increaseAllowance(setup_contracts, approved_account, zero_address):
+def test_increaseAllowance(fn_isolation, setup_contracts, approved_account, zero_address):
     token = setup_contracts[0]
 
     amount = 1e18
@@ -78,7 +78,7 @@ def test_increaseAllowance(setup_contracts, approved_account, zero_address):
     assert token.allowance(approved_account, lp) == amount
 
 
-def test_decreaseAllowance(setup_contracts, approved_account):
+def test_decreaseAllowance(fn_isolation, setup_contracts, approved_account):
     token = setup_contracts[0]
 
     amount = 1e18
@@ -99,7 +99,7 @@ def test_decreaseAllowance(setup_contracts, approved_account):
     assert token.allowance(approved_account, lp) == 0
 
 
-def test_transfer(setup_contracts, owner, zero_address):
+def test_transfer(fn_isolation, setup_contracts, owner, zero_address):
     token = setup_contracts[0]
 
     amount = 1e18
@@ -135,7 +135,7 @@ def test_transfer(setup_contracts, owner, zero_address):
     assert token.balanceOf(lp) == amount
 
 
-def test_transferFrom(setup_contracts, owner, approved_account):
+def test_transferFrom(fn_isolation, setup_contracts, owner, approved_account):
     token = setup_contracts[0]
 
     amount = 1e18
@@ -170,7 +170,7 @@ def test_transferFrom(setup_contracts, owner, approved_account):
     assert token.balanceOf(owner) == amount
 
 
-def test_burn(setup_contracts, owner, zero_address):
+def test_burn(fn_isolation, setup_contracts, owner, zero_address):
     token = setup_contracts[0]
 
     amount = 1e18
@@ -202,7 +202,7 @@ def test_burn(setup_contracts, owner, zero_address):
     assert token.totalSupply() == 0
 
 
-def test_burnFrom(setup_contracts, owner, approved_account):
+def test_burnFrom(fn_isolation, setup_contracts, owner, approved_account):
     token = setup_contracts[0]
 
     amount = 1e18
