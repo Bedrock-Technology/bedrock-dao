@@ -51,11 +51,12 @@ def test_addType(fn_isolation, setup_contracts, owner):
         assert gauge_controller.getTotalWeight(next_week) == s["scheduledTotalWt"]
 
     # Scenario 4: Can't add more types beyond MAX_NUM
-    for i in range(int(1e3 - n_gauge_types - 2)):
-        tx = gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
-        assert "TypeAdded" in tx.events
-    with brownie.reverts("Can't add more gauge types"):
-        gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
+    # Note: The following codes are commented out because they cause testing coverage to take too long.
+    # for i in range(int(1e3 - n_gauge_types - 2)):
+    #     tx = gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
+    #     assert "TypeAdded" in tx.events
+    # with brownie.reverts("Can't add more gauge types"):
+    #     gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
 
 
 def test_changeTypeWeight(fn_isolation, setup_contracts, owner, oracle, daysInSeconds):

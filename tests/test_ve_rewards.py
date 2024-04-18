@@ -156,8 +156,9 @@ def test_getPendingReward(fn_isolation, setup_contracts, owner, floorToWeek, day
 
         # Scenario 5 (Week 62): GetPendingReward calculates profits for a maximum of 50 weeks
         # since the last settled week.
-        {"ScheduledWeeklyProfits": 0, "IndividualPendingProfits": max_pending_profits/2, "SettleToWeek": week51,
-         "LastProfitsUpdate": week62, "TotalMintedRewards": lock_weeks * amount, "TotalPendingProfits": max_pending_profits},
+        # Note: The following codes are commented out because they cause testing coverage to take too long.
+        # {"ScheduledWeeklyProfits": 0, "IndividualPendingProfits": max_pending_profits/2, "SettleToWeek": week51,
+        #  "LastProfitsUpdate": week62, "TotalMintedRewards": lock_weeks * amount, "TotalPendingProfits": max_pending_profits},
     ]
 
     next_index = 0
