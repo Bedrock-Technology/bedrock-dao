@@ -135,6 +135,31 @@ def test_transfer(fn_isolation, setup_contracts, owner, zero_address):
     assert token.balanceOf(lp) == amount
 
 
+def test_batchTransfer(fn_isolation, users, setup_contracts, owner, approved_account):
+    token = setup_contracts[0]
+
+    amt = 200
+
+    # Scenario 1: At least one recipient is provided.
+    with brownie .reverts("BRT: least one recipient address"):
+        token.batchTransfer([], [], {'from': owner})
+
+    # Scenario 2: The number of recipients must equal the number of tokens
+    with brownie .reverts("BRT: number of recipient addresses does not match the number of tokens"):
+        token.batchTransfer([users[0], users[1]], [amt/2], {'from': owner})
+    with brownie .reverts("BRT: number of recipient addresses does not match the number of tokens"):
+        token.batchTransfer([users[0]], [amt/2, amt/2], {'from': owner})
+
+    # Scenario 3: Transfer successful and balances update accordingly
+    token.mint(owner, amt, {'from': owner})
+    tx = token.batchTransfer([users[0], users[1]], [amt/2, amt/2], {'from': owner})
+    assert 'Transfer' in tx.events
+    assert token.totalSupply() == amt
+    assert token.balanceOf(owner) == 0
+    assert token.balanceOf(users[0]) == amt/2
+    assert token.balanceOf(users[1]) == amt/2
+
+
 def test_transferFrom(fn_isolation, setup_contracts, owner, approved_account):
     token = setup_contracts[0]
 
