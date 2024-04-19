@@ -1,7 +1,6 @@
 import brownie
 from brownie import accounts, chain
 import math
-import secrets
 import os
 
 from tests.utils import get_week, estimatedLockAmt

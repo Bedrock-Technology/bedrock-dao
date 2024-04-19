@@ -135,7 +135,7 @@ def test_transfer(fn_isolation, setup_contracts, owner, zero_address):
     assert token.balanceOf(lp) == amount
 
 
-def test_batchTransfer(fn_isolation, users, setup_contracts, owner, approved_account):
+def test_batchTransfer(fn_isolation, users, setup_contracts, owner):
     token = setup_contracts[0]
 
     amt = 200
