@@ -660,6 +660,99 @@ def test_totalSupply_with_timestamp(fn_isolation, setup_contracts, owner, users,
         token.mint(users[0], amt, {"from": owner})
 
 
+def test_totalSupplyAt(fn_isolation, setup_contracts, owner, users, daysInSeconds, floorToWeek):
+    token, ve = setup_contracts[0], setup_contracts[1]
+
+    week = daysInSeconds(7)
+    week1 = get_week(1)
+    amt = ve.MAXTIME()*100e18
+    slope = amt/ve.MAXTIME()
+    weeks_in_lock = 2
+
+    token.mint(users[0], amt, {"from": owner})
+    token.approve(ve, amt, {"from": users[0]})
+    lock_end = get_week(weeks_in_lock+1)
+
+    tx = ve.createLock(amt, lock_end, {"from": users[0]})
+    assert "Locked" in tx.events
+    assert ve.globalEpoch() == 1
+
+    powers = [slope * 2 * week, slope * 1 * week, 0]
+    for i in range(weeks_in_lock + 1):
+        assert ve.balanceOf(users[0], week1 + i * week) == powers[i]
+
+    bias, slope, ts = ve.getFirstUserPoint(users[0])
+    point0 = ve.pointHistory(1)
+    point0_ts = point0[2]
+    point0_blk = point0[3]
+
+    height0 = chain.height
+
+    # Scenario 1: Can provide only past block number
+    with brownie.reverts("Only past block number"):
+        ve.totalSupplyAt(height0 + 1)
+
+    # Scenario 2: Zero balance before lock
+    assert ve.totalSupplyAt(height0 - 1) == 0
+
+    # Scenario 3: Balance at lock time
+    assert ve.totalSupplyAt(height0) == (lock_end - ts) * slope
+
+    # Scenario 4: The checkpoint has not been updated for some time
+    sleep_weeks = weeks_in_lock+1
+    for i in range(sleep_weeks):
+        chain.sleep(week)
+        token.mint(users[0], amt, {"from": owner})
+        assert chain.height == height0 + (i + 1)
+
+    dTime = chain.time() - point0_ts
+    dBlock = chain.height - point0_blk
+
+    for i in range(weeks_in_lock + 2):
+        block_number = height0 + i
+        block_time = point0_ts + (block_number-point0_blk) * dTime/dBlock
+
+        dBias = slope * (block_time - ts)
+
+        if bias > dBias:
+            assert ve.totalSupplyAt(block_number) == bias - dBias
+        else:
+            assert ve.totalSupplyAt(block_number) == 0
+
+    for i in range(weeks_in_lock + 1):
+        block_number = height0 + i + 1
+        assert abs(ve.totalSupplyAt(block_number) - powers[i]) <= slope * week
+
+    # Scenario 5: Checkpoint has been updated
+    ve.checkpoint({"from": owner})
+    epochs = 1 + sleep_weeks + 1
+    assert ve.globalEpoch() == epochs
+
+    initial_last_pt = ve.pointHistory(1)
+    initial_last_pt_ts = initial_last_pt[2]
+    assert initial_last_pt[3] == height0
+
+    block_slope = int(1e18 * (chain.height - height0) / (chain.time() - initial_last_pt_ts))
+
+    height2_pt = ve.pointHistory(3)
+    height2_pt_ts = height2_pt[2]
+    height2_pt_blk = height2_pt[3]
+    assert height2_pt_ts == floorToWeek(initial_last_pt_ts) + week*2
+    assert height2_pt_blk == height0 + int((height2_pt_ts - initial_last_pt_ts) * block_slope / 1e18)
+    assert height2_pt_blk == height0 + 2
+
+    height3_pt = ve.pointHistory(4)
+    height3_pt_ts = height3_pt[2]
+    height3_pt_blk = height3_pt[3]
+    assert height3_pt_ts == floorToWeek(initial_last_pt_ts) + week*3
+    assert height3_pt_blk == height0 + int((height3_pt_ts - initial_last_pt_ts) * block_slope / 1e18)
+    assert height3_pt_blk == height0 + 3
+
+    for i in range(weeks_in_lock + 1):
+        block_number = height0 + i + 1
+        assert ve.totalSupplyAt(block_number) == powers[i]
+
+
 def test_checkpoint(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
 
