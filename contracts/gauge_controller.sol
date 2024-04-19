@@ -30,7 +30,6 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
  */
 contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     bytes32 public constant AUTHORIZED_OPERATOR = keccak256("AUTHORIZED_OPERATOR_ROLE");
-    bytes32 public constant VOTING_ESCROW = keccak256("VOTING_ESCROW_ROLE");
 
     struct Point {
         uint256 bias;
@@ -123,7 +122,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(AUTHORIZED_OPERATOR, msg.sender);
-        _grantRole(VOTING_ESCROW, _votingEscrow);
     }
 
     /**
