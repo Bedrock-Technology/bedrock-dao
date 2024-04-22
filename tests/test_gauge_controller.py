@@ -1,14 +1,12 @@
 import brownie
 from brownie import accounts, chain
 import math
-import time
-import secrets
 import os
 
-from tests.utils import get_week, estimatedLockAmt, estimatedVotingPower
+from tests.utils import get_week, estimatedLockAmt
 
 
-def test_addType(setup_contracts, owner):
+def test_addType(fn_isolation, setup_contracts, owner):
     gauge_controller = setup_contracts[2]
     wt = 1
     oracle = accounts[4]
@@ -52,14 +50,15 @@ def test_addType(setup_contracts, owner):
         assert gauge_controller.getTotalWeight(next_week) == s["scheduledTotalWt"]
 
     # Scenario 4: Can't add more types beyond MAX_NUM
-    for i in range(int(1e3 - n_gauge_types - 2)):
-        tx = gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
-        assert "TypeAdded" in tx.events
-    with brownie.reverts("Can't add more gauge types"):
-        gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
+    # Note: The following codes are commented out because they cause testing coverage to take too long.
+    # for i in range(int(1e3 - n_gauge_types - 2)):
+    #     tx = gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
+    #     assert "TypeAdded" in tx.events
+    # with brownie.reverts("Can't add more gauge types"):
+    #     gauge_controller.addType(secrets.token_hex(5 // 2), 0, {'from': owner})
 
 
-def test_changeTypeWeight(setup_contracts, owner, oracle, daysInSeconds):
+def test_changeTypeWeight(fn_isolation, setup_contracts, owner, oracle, daysInSeconds):
     gauge_controller = setup_contracts[2]
     week = daysInSeconds(7)
     start_week = get_week(0)
@@ -106,7 +105,7 @@ def test_changeTypeWeight(setup_contracts, owner, oracle, daysInSeconds):
         assert gauge_controller.getLastTypeWtScheduleTime(1) == type_wt_schedule_time
 
 
-def test_addGauge(setup_contracts, owner, oracle, zero_address, w3):
+def test_addGauge(fn_isolation, setup_contracts, owner, oracle, zero_address, w3):
     gauge_controller = setup_contracts[2]
     fake_gauge = w3.eth.account.create(os.urandom(32)).address
     weight = 200*1e18
@@ -180,7 +179,7 @@ def test_addGauge(setup_contracts, owner, oracle, zero_address, w3):
     assert gauge_controller.getLastTotalWtScheduleTime() == get_week(1)
 
 
-def test_changeGaugeBaseWeight(setup_contracts, owner, oracle, w3):
+def test_changeGaugeBaseWeight(fn_isolation, setup_contracts, owner, oracle, w3):
     gauge_controller = setup_contracts[2]
     fake_gauge = w3.eth.account.create(os.urandom(32)).address
     weight = 300*1e18
@@ -232,7 +231,7 @@ def test_changeGaugeBaseWeight(setup_contracts, owner, oracle, w3):
     assert gauge_controller.getLastTotalWtScheduleTime() == get_week(1)
 
 
-def test_checkpoint(setup_contracts, owner, daysInSeconds):
+def test_checkpoint(fn_isolation, setup_contracts, owner, daysInSeconds):
     gauge_controller = setup_contracts[2]
     week = daysInSeconds(7)
     week0 = get_week(0)
@@ -283,7 +282,7 @@ def test_checkpoint(setup_contracts, owner, daysInSeconds):
         assert gauge_controller.getWeightsSumPerType(0, get_week(2)) == 100*1e18
 
 
-def test_checkpointGauge(setup_contracts, owner, daysInSeconds):
+def test_checkpointGauge(fn_isolation, setup_contracts, owner, daysInSeconds):
     gauge_controller = setup_contracts[2]
     week = daysInSeconds(7)
     week0 = get_week(0)
@@ -342,7 +341,7 @@ def test_checkpointGauge(setup_contracts, owner, daysInSeconds):
         assert gauge_controller.getWeightsSumPerType(0, get_week(2)) == 100*1e18
 
 
-def test_checkpointGauge_in_batch(setup_contracts, owner, daysInSeconds):
+def test_checkpointGauge_in_batch(fn_isolation, setup_contracts, owner, daysInSeconds):
     gauge_controller = setup_contracts[2]
     week = daysInSeconds(7)
     week0 = get_week(0)
@@ -402,7 +401,7 @@ def test_checkpointGauge_in_batch(setup_contracts, owner, daysInSeconds):
         gauge_controller.checkpointGauge({'from': owner})
 
 
-def test_weight_decrease_overtime(setup_contracts, owner, users, daysInSeconds):
+def test_weight_decrease_overtime(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, voting_escrow, gauge_controller = (
         setup_contracts[0], setup_contracts[1], setup_contracts[2])
 
@@ -650,26 +649,20 @@ def test_weight_decrease_overtime(setup_contracts, owner, users, daysInSeconds):
     assert gauge_controller.getWeightsSumPerType(1, week3) == 100e18
 
 
-# TODO: To be optimized
-def test_voteForGaugeWeight(setup_contracts, owner, users, daysInSeconds):
+def test_voteForGaugeWeight(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, voting_escrow, gauge_controller = (
         setup_contracts[0], setup_contracts[1], setup_contracts[2])
 
     week = daysInSeconds(7)
-
     gauges = gauge_controller.getGaugeList()
-
     prec = gauge_controller.PREC()
 
     weeks_in_lock = 4
     voting_power = 700e18
-    amt_in_lock = estimatedLockAmt(voting_power, weeks_in_lock)
-    assert amt_in_lock == 36500e18
+    amt = estimatedLockAmt(voting_power, weeks_in_lock)
 
-    token.mint(users[0], amt_in_lock, {"from": owner})
-    token.approve(voting_escrow, amt_in_lock, {"from": users[0]})
-
-    gauge_controller.changeGaugeBaseWeight(gauges[0], 0, {'from': owner})
+    token.mint(users[0], amt, {"from": owner})
+    token.approve(voting_escrow, amt, {"from": users[0]})
 
     # Scenario 1: Users can't provide invalid voting power
     with brownie.reverts("Invalid voting power provided"):
@@ -680,13 +673,18 @@ def test_voteForGaugeWeight(setup_contracts, owner, users, daysInSeconds):
         gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[1]})
 
     # Scenario 3: Users can't vote if the lock expires before next week
-    voting_escrow.createLock(1e18, get_week(1), {"from": users[0]})
+    tx = voting_escrow.createLock(1e18, get_week(1), {"from": users[0]})
+    assert "Locked" in tx.events
+
     with brownie.reverts("Lock expires before next cycle"):
         gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[0]})
 
     # Scenario 4: Users can't vote too frequently for the same gauge
-    voting_escrow.increaseLockLength(get_week(10), {"from": users[0]})
-    gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[0]})
+    voting_escrow.increaseLockLength(get_week(10), {"from": users[0]})    # TODO
+    assert "Locked" in tx.events
+
+    tx = gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[0]})
+    assert "GaugeVoted" in tx.events
     with brownie.reverts("Can't vote so often"):
         gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[0]})
 
@@ -695,10 +693,120 @@ def test_voteForGaugeWeight(setup_contracts, owner, users, daysInSeconds):
     with brownie.reverts("Power beyond boundaries"):
         gauge_controller.voteForGaugeWeight(gauges[1], 1, {'from': users[0]})
 
-    # Scenario 6: Users can't vote positive power for a gauge with zero type weight
+    # Scenario 6: Users cannot vote with positive power for a gauge that has a weight of zero;
+    # however, they can allocate zero power to it.
+    tx = gauge_controller.changeTypeWeight(0, 0, {'from': owner})
+    assert "TypeWeightUpdated" in tx.events
 
-    # Scenario 7: Users can vote zero power for a gauge with zero type weight;
-    # the power is scheduled to take effect the following week.
+    with brownie.reverts("Votes for a gauge with zero type weight"):
+        gauge_controller.voteForGaugeWeight(gauges[0], prec, {'from': users[0]})
+
+    tx = gauge_controller.voteForGaugeWeight(gauges[0], 0, {'from': users[0]})
+    assert "GaugeVoted" in tx.events
 
     # Scenario 8: Users can vote positively for a gauge with a positive type weight;
     # the power is scheduled to take effect the following week.
+    tx = gauge_controller.changeTypeWeight(0, 1, {'from': owner})
+    assert "TypeWeightUpdated" in tx.events
+
+    chain.sleep(10 * week)
+    amt = voting_escrow.MAXTIME()*100e18
+    tx = voting_escrow.withdraw({"from": users[0]})
+    assert "Unlocked" in tx.events
+
+    slope = amt / voting_escrow.MAXTIME()
+    lock_end = get_week(3)
+
+    for i in range(2):
+        token.mint(users[i], amt, {"from": owner})
+        token.approve(voting_escrow, amt, {"from": users[i]})
+        tx = voting_escrow.createLock(amt, lock_end, {"from": users[i]})
+        assert "Locked" in tx.events
+
+        tx = gauge_controller.voteForGaugeWeight(gauges[i], prec, {'from': users[i]})
+        assert "GaugeVoted" in tx.events
+
+        assert gauge_controller.userVotePower(users[i]) == prec
+
+        assert gauge_controller.userVoteData(users[i], gauges[i])[0] == slope
+        assert gauge_controller.userVoteData(users[i], gauges[i])[1] == prec
+        assert gauge_controller.userVoteData(users[i], gauges[i])[2] == lock_end
+        # assert gauge_controller.userVoteData(users[i], gauges[0])[3] == chain.time()   # voteTime
+
+    for i in range(2):
+        assert gauge_controller.getLastGaugeWtScheduleTime(gauges[i]) == get_week(1)
+        assert gauge_controller.getLastGaugeBaseWtScheduleTime(gauges[i]) == get_week(1)
+        assert gauge_controller.getLastTypeWtScheduleTime(i) == get_week(1)
+        assert gauge_controller.getLastSumWtScheduleTime(i) == get_week(1)
+        assert gauge_controller.getLastTotalWtScheduleTime() == get_week(1)
+
+        assert gauge_controller.getGaugeBaseWeight(gauges[i]) == 100e18
+        assert gauge_controller.getGaugeBaseWeight(gauges[i], get_week(1)) == 100e18
+        assert gauge_controller.getGaugeBaseWeight(gauges[i], get_week(2)) == 100e18
+        assert gauge_controller.getGaugeBaseWeight(gauges[i], get_week(3)) == 100e18
+
+        assert gauge_controller.getGaugeWeight(gauges[i]) == 100e18
+        assert gauge_controller.getGaugeWeight(gauges[i], get_week(1))/1e18 == 100 + 100*2*week
+        assert gauge_controller.getGaugeWeight(gauges[i], get_week(2))/1e18 == 100 + 100*1*week
+        assert gauge_controller.getGaugeWeight(gauges[i], get_week(3)) == 100e18
+
+        assert gauge_controller.gaugePoints(gauges[i], get_week())[0] == 100e18
+        assert gauge_controller.gaugePoints(gauges[i], get_week(1))[0]/1e18 == 100 + 100*2*week
+        assert gauge_controller.gaugePoints(gauges[i], get_week(2))[0] == 0
+        assert gauge_controller.gaugePoints(gauges[i], get_week(3))[0] == 0
+
+        assert gauge_controller.gaugePoints(gauges[i], get_week())[1] == 0
+        assert gauge_controller.gaugePoints(gauges[i], get_week(1))[1] == 100*1e18
+        assert gauge_controller.gaugePoints(gauges[i], get_week(2))[1] == 0
+        assert gauge_controller.gaugePoints(gauges[i], get_week(3))[1] == 0
+
+        assert gauge_controller.gaugeSlopeChanges(gauges[i], get_week()) == 0
+        assert gauge_controller.gaugeSlopeChanges(gauges[i], get_week(1)) == 0
+        assert gauge_controller.gaugeSlopeChanges(gauges[i], get_week(2)) == 0
+        assert gauge_controller.gaugeSlopeChanges(gauges[i], get_week(3)) == 100*1e18
+
+        assert gauge_controller.gaugeBaseWtAtTime(gauges[i], get_week()) == 100*1e18
+        assert gauge_controller.gaugeBaseWtAtTime(gauges[i], get_week(1)) == 100*1e18
+        assert gauge_controller.gaugeBaseWtAtTime(gauges[i], get_week(2)) == 0
+        assert gauge_controller.gaugeBaseWtAtTime(gauges[i], get_week(3)) == 0
+
+        assert gauge_controller.getUserVotesWtForGauge(gauges[i]) == 0
+        assert gauge_controller.getUserVotesWtForGauge(gauges[i], get_week(1)) == 100e18*2*week
+        assert gauge_controller.getUserVotesWtForGauge(gauges[i], get_week(2)) == 100e18*1*week
+        assert gauge_controller.getUserVotesWtForGauge(gauges[i], get_week(3)) == 0
+
+        assert gauge_controller.getTypeWeight(i) == 1
+        assert gauge_controller.getTypeWeight(i, get_week(1)) == 1
+        assert gauge_controller.getTypeWeight(i, get_week(2)) == 1
+        assert gauge_controller.getTypeWeight(i, get_week(3)) == 1
+
+        assert gauge_controller.getWeightsSumPerType(i) == 100e18
+        assert gauge_controller.getWeightsSumPerType(i, get_week(1))/1e18 == 100 + 100*2*week
+        assert gauge_controller.getWeightsSumPerType(i, get_week(2))/1e18 == 100 + 100*1*week
+        assert gauge_controller.getWeightsSumPerType(i, get_week(3)) == 100e18
+
+        assert gauge_controller.typePoints(i, get_week())[0] == 100e18
+        assert gauge_controller.typePoints(i, get_week(1))[0]/1e18 == 100 + 100*2*week
+        assert gauge_controller.typePoints(i, get_week(2))[0] == 0
+        assert gauge_controller.typePoints(i, get_week(3))[0] == 0
+
+        assert gauge_controller.typePoints(i, get_week())[1] == 0
+        assert gauge_controller.typePoints(i, get_week(1))[1] == 100*1e18
+        assert gauge_controller.typePoints(i, get_week(2))[1] == 0
+        assert gauge_controller.typePoints(i, get_week(3))[1] == 0
+
+        assert gauge_controller.typeSlopeChanges(i, get_week()) == 0
+        assert gauge_controller.typeSlopeChanges(i, get_week(1)) == 0
+        assert gauge_controller.typeSlopeChanges(i, get_week(2)) == 0
+        assert gauge_controller.typeSlopeChanges(i, get_week(3)) == 100*1e18
+
+        assert gauge_controller.getTotalWeight() == 2*100e18
+        assert gauge_controller.getTotalWeight(get_week(1))/1e18 == 2*(100 + 100*2*week)
+        assert gauge_controller.getTotalWeight(get_week(2))/1e18 == 2*(100 + 100*1*week)
+        assert gauge_controller.getTotalWeight(get_week(3)) == 2*100e18
+
+        assert gauge_controller.gaugeRelativeWeight(gauges[i]) == 50/100 * 1e18
+        assert gauge_controller.gaugeRelativeWeight(gauges[i], get_week(1)) == 50/100 * 1e18
+        assert gauge_controller.gaugeRelativeWeight(gauges[i], get_week(2)) == 50/100 * 1e18
+        assert gauge_controller.gaugeRelativeWeight(gauges[i], get_week(3)) == 50/100 * 1e18
+

@@ -30,7 +30,6 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
  */
 contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     bytes32 public constant AUTHORIZED_OPERATOR = keccak256("AUTHORIZED_OPERATOR_ROLE");
-    bytes32 public constant VOTING_ESCROW = keccak256("VOTING_ESCROW_ROLE");
 
     struct Point {
         uint256 bias;
@@ -123,7 +122,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(AUTHORIZED_OPERATOR, msg.sender);
-        _grantRole(VOTING_ESCROW, _votingEscrow);
     }
 
     /**
@@ -313,79 +311,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         uint256 voteUsed = newVoteData.slope * (newVoteData.end - newVoteData.voteTime);
 
         emit GaugeVoted(block.timestamp, msg.sender, _gAddr, _userWeight, voteUsed);
-    }
-
-    /**
-     *  @notice Increase the weight of user votes for gauges automatically in proportion to the current user votes after
-                a user's voting power has increased due to locking activities.
-     *  @param _user The address of the veBRT holder
-     *  @param _slope The latest slope of the user's point
-     *  @param _lockEnd The latest BRT lock end time for the user
-     */
-    function voteForGaugeWeightAutomatically(address _user, int128 _slope, uint256 _lockEnd)
-        external
-        onlyRole(VOTING_ESCROW)
-    {
-        uint256 nextTime = _getWeek(block.timestamp + WEEK);
-        if (_lockEnd <= nextTime) return;
-
-        for (uint i = 0; i < gauges.length; i++) {
-            // Prepare slopes and biases in memory
-            address _gAddr = gauges[i];
-            VoteData memory oldVoteData = userVoteData[_user][_gAddr];
-            if (oldVoteData.power == 0) continue;
-            uint256 userWeight = oldVoteData.power;
-            uint256 voteTime = block.timestamp;
-
-            VoteData memory newVoteData = VoteData({
-                slope: (SafeCast.toUint256(_slope) * userWeight) / PREC,
-                end: _lockEnd,
-                power: userWeight,
-                voteTime: voteTime
-            });
-
-            // Update scheduled changes
-            _updateScheduledChanges(
-                oldVoteData,
-                newVoteData,
-                nextTime,
-                _lockEnd,
-                _gAddr
-            );
-
-            userVoteData[_user][_gAddr] = newVoteData;
-            uint256 voteUsed = newVoteData.slope * (newVoteData.end - newVoteData.voteTime);
-
-            emit GaugeVoted(voteTime, _user, _gAddr, userWeight, voteUsed);
-        }
-
-        _getTotal();
-    }
-
-    /**
-     *  @notice Get gauge weight normalized to 1e18 and also fill all the unfilled
-     *         values for type and gauge records
-     *  @dev Any address can call, however nothing is recorded if the values are filled already
-     *  @param _gAddr Gauge address
-     *  @param _time Relative weight at the specified timestamp in the past or present
-     *  @return Value of relative weight normalized to 1e18
-     */
-    function gaugeRelativeWeightWrite(address _gAddr, uint256 _time)
-        external
-        returns (uint256)
-    {
-        _getWeight(_gAddr);
-        _getTotal();
-        return _gaugeRelativeWeight(_gAddr, _time);
-    }
-
-    function gaugeRelativeWeightWrite(address _gAddr)
-        external
-        returns (uint256)
-    {
-        _getWeight(_gAddr);
-        _getTotal();
-        return _gaugeRelativeWeight(_gAddr, block.timestamp);
     }
 
     /**
@@ -856,8 +781,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     ) private {
         uint128 gType = _getGaugeType(_gAddr);
 
-        _getTypeWeight(gType);
-        uint256 typeWt = typeWtAtTime[gType][_nextTime];
+        uint256 typeWt = _getTypeWeight(gType);
         if (typeWt == 0) {
             require(_newVoteData.power == 0, "Votes for a gauge with zero type weight");
         }
