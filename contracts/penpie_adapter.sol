@@ -77,7 +77,7 @@ contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable
     /**
      * @dev updateReward
      */
-    function updateReward() external {  _updateReward(); }
+    function updateReward() external whenNotPaused {  _updateReward(); }
 
     /**
      * @dev resetAllowance()

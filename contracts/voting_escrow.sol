@@ -268,7 +268,6 @@ contract VotingEscrow is Initializable, PausableUpgradeable, AccessControlUpgrad
     function withdraw()
         external
         nonReentrant
-        whenNotPaused
     {
         address account = msg.sender;
         LockedBalance memory oldLock = LockedBalance({

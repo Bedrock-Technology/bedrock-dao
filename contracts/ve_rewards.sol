@@ -89,7 +89,7 @@ contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, Re
     /**
      * @dev claim all rewards
      */
-    function claim(bool restake) external nonReentrant whenNotPaused {
+    function claim(bool restake) external nonReentrant {
         _updateReward();
 
         // calc profits and update settled week

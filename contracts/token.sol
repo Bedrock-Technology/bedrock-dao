@@ -29,7 +29,7 @@ contract BedrockDAO is ERC20, ERC20Burnable, AccessControl, ERC20Pausable, ERC20
         _unpause();
     }
 
-    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+    function mint(address to, uint256 amount) public whenNotPaused onlyRole(MINTER_ROLE) {
         _mint(to, amount);
     }
     

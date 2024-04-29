@@ -17,6 +17,7 @@ pragma solidity ^0.8.9;
 import "interfaces/IVotingEscrow.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /**
@@ -28,9 +29,10 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
  *              (see: https://arbiscan.io/address/0xdce2810fc24d8ec8a6d2d749e1248e3f0ba97257#code)
  *          RockX Team - this version, structure and code optimized, role-based access-control
  */
-contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
+contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable{
     bytes32 public constant AUTHORIZED_OPERATOR = keccak256("AUTHORIZED_OPERATOR_ROLE");
-
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    
     struct Point {
         uint256 bias;
         uint256 slope;
@@ -122,6 +124,15 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(AUTHORIZED_OPERATOR, msg.sender);
+        _grantRole(PAUSER_ROLE, msg.sender);
+    }
+
+    function pause() public onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() public onlyRole(PAUSER_ROLE) {
+        _unpause();
     }
 
     /**
@@ -131,6 +142,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      */
     function addType(string memory _typeName, uint256 _weight)
         external
+        whenNotPaused
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(nGaugeTypes < MAX_NUM, "Can't add more gauge types");
@@ -154,6 +166,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     */
     function changeTypeWeight(uint128 _gType, uint256 _weight)
         external
+        whenNotPaused
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _changeTypeWeight(_gType, _weight);
@@ -166,6 +179,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      */
     function changeGaugeBaseWeight(address _gAddr, uint256 _newW0)
         external
+        whenNotPaused
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _changeGaugeBaseWeight(_gAddr, _newW0);
@@ -181,7 +195,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
         address _gAddr,
         uint128 _gType,
         uint256 _weight
-    ) external onlyRole(AUTHORIZED_OPERATOR)
+    ) external whenNotPaused onlyRole(AUTHORIZED_OPERATOR)
     {
         require(_gAddr != address(0), "Invalid address");
         require(_gType < nGaugeTypes, "Invalid gauge type");
@@ -264,6 +278,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      */
     function voteForGaugeWeight(address _gAddr, uint256 _userWeight)
         external
+        whenNotPaused
         nonReentrant
     {
         require(
