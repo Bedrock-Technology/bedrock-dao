@@ -95,9 +95,9 @@ contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, Re
         // calc profits and update settled week
         (uint256 profits, uint256 settleToWeek) = _calcProfits(msg.sender);
 
-        if (profits == 0) return;
-
         userLastSettledWeek[msg.sender] = settleToWeek;
+        
+        if (profits == 0) return;
         
         if (restake) {
             IERC20(rewardToken).safeApprove(votingEscrow, profits);
