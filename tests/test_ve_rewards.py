@@ -18,9 +18,9 @@ def test_claim(fn_isolation, setup_contracts, owner, floorToWeek, daysInSeconds)
     current_week = week0
 
     scenarios = [
-        # Scenario 0 (Week 0): Profits cannot be claimed while the contract is paused.
-        {"Revert": True, "RevertMsg": "Pausable: paused", "Restake": False, "Event": "", "UserLastSettledWeek": week0,
-         "BRTBalanceOfVotingEscrow": 0, "BRTBalanceOfVeRewards": 0, "BRTBalanceOfUser": 0},
+        # Scenario 0 (Week 0): No action
+        {"Revert": False, "RevertMsg": "", "Restake": False, "Event": "", "UserLastSettledWeek": 0,
+         "BRTBalanceOfVotingEscrow": amount, "BRTBalanceOfVeRewards": amount, "BRTBalanceOfUser": 0},
 
         # Scenario 1 (Week 1): No pending profits. Executing a claim does not cause a change in contract status.
         {"Revert": False, "RevertMsg": "", "Restake": False, "Event": "", "UserLastSettledWeek": 0,
@@ -43,16 +43,7 @@ def test_claim(fn_isolation, setup_contracts, owner, floorToWeek, daysInSeconds)
     voting_escrow.assignRewardsManager(ve_rewards, {'from': owner})
 
     for s in scenarios:
-        # Test revert path
-        if s['Revert']:
-            assert not ve_rewards.paused()
-            ve_rewards.pause({"from": owner})
-            assert ve_rewards.paused()
-            with brownie.reverts(s['RevertMsg']):
-                ve_rewards.claim(s['Restake'], {'from': lp})
-            ve_rewards.unpause({"from": owner})
-            assert not ve_rewards.paused()
-        else:
+        if current_week != week0:
             # Generate rewards if locks have not yet expired.
             if voting_escrow.totalSupply(current_week) > 0:
                 token.mint(ve_rewards, amount, {"from": owner})

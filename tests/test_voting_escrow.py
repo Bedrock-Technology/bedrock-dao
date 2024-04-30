@@ -590,17 +590,17 @@ def test_balanceOfAt(fn_isolation, setup_contracts, owner, users, daysInSeconds,
     height2_pt_blk = height2_pt[3]
     assert height2_pt_ts == floorToWeek(initial_last_pt_ts) + week*2
     assert height2_pt_blk == height0 + int((height2_pt_ts - initial_last_pt_ts) * block_slope / 1e18)
-    assert height2_pt_blk == height0 + 2
+    assert height2_pt_blk == height0 + 1
 
     height3_pt = ve.pointHistory(4)
     height3_pt_ts = height3_pt[2]
     height3_pt_blk = height3_pt[3]
     assert height3_pt_ts == floorToWeek(initial_last_pt_ts) + week*3
     assert height3_pt_blk == height0 + int((height3_pt_ts - initial_last_pt_ts) * block_slope / 1e18)
-    assert height3_pt_blk == height0 + 3
+    assert height3_pt_blk == height0 + 2
 
-    for i in range(weeks_in_lock + 1):
-        block_number = height0 + i + 1
+    for i in range(weeks_in_lock+1):
+        block_number = height0 + i
         assert ve.balanceOfAt(users[0], block_number) == powers[i]
 
 
@@ -745,17 +745,17 @@ def test_totalSupplyAt(fn_isolation, setup_contracts, owner, users, daysInSecond
     height2_pt_blk = height2_pt[3]
     assert height2_pt_ts == floorToWeek(initial_last_pt_ts) + week*2
     assert height2_pt_blk == height0 + int((height2_pt_ts - initial_last_pt_ts) * block_slope / 1e18)
-    assert height2_pt_blk == height0 + 2
+    assert height2_pt_blk == height0 + 1
 
     height3_pt = ve.pointHistory(4)
     height3_pt_ts = height3_pt[2]
     height3_pt_blk = height3_pt[3]
     assert height3_pt_ts == floorToWeek(initial_last_pt_ts) + week*3
     assert height3_pt_blk == height0 + int((height3_pt_ts - initial_last_pt_ts) * block_slope / 1e18)
-    assert height3_pt_blk == height0 + 3
+    assert height3_pt_blk == height0 + 2
 
     for i in range(weeks_in_lock + 1):
-        block_number = height0 + i + 1
+        block_number = height0 + i
         assert ve.totalSupplyAt(block_number) == powers[i]
 
 

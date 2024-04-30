@@ -32,7 +32,7 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable{
     bytes32 public constant AUTHORIZED_OPERATOR = keccak256("AUTHORIZED_OPERATOR_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    
+
     struct Point {
         uint256 bias;
         uint256 slope;
