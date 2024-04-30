@@ -17,5 +17,5 @@ pragma solidity ^0.8.9;
 
 interface IBribeManager {
     function marketToPid(address market) external view returns (uint256);
-    function addBribeERC20(uint256 _batch, uint256 _pid, address _token, uint256 _amount) external;
+    function addBribeERC20(uint256 _batch, uint256 _pid, address _token, uint256 _amount, bool _forPreviousEpoch) external;
 }
