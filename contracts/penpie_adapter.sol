@@ -115,7 +115,7 @@ contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable
         // transfer bribe
         uint256 currentAllowance = IERC20(rewardToken).allowance(address(this), bribeManager);
         if (currentAllowance < balance) {
-            IERC20(rewardToken).safeApprove(bribeManager, balance-currentAllowance);
+            IERC20(rewardToken).safeApprove(bribeManager, balance);
         }
         IBribeManager(bribeManager).addBribeERC20(1, _pid, rewardToken, balance);        
         
