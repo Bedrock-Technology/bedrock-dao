@@ -308,7 +308,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
 
         _getTotal();
         userVoteData[msg.sender][_gAddr] = newVoteData;
-        uint256 voteUsed = newVoteData.slope * (newVoteData.end - newVoteData.voteTime);
+        uint256 voteUsed = newVoteData.slope * (newVoteData.end - nextTime);
 
         emit GaugeVoted(block.timestamp, msg.sender, _gAddr, _userWeight, voteUsed);
     }
