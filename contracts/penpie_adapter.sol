@@ -78,18 +78,7 @@ contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable
      * @dev updateReward
      */
     function updateReward() external {  _updateReward(); }
-
-    /**
-     * @dev resetAllowance()
-     */
-    function resetAllowance() external onlyOwner {
-        uint256 currentAllowance = IERC20(rewardToken).allowance(address(this), bribeManager);
-        if (currentAllowance != 0) {
-            IERC20(rewardToken).safeApprove(bribeManager, 0);
-            emit ResetAllowanceForBribeManager(block.timestamp);
-        }
-    }
-
+    
     /**
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      *
