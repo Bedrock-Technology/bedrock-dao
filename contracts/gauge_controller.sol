@@ -18,6 +18,7 @@ import "interfaces/IVotingEscrow.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /**
@@ -29,7 +30,7 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
  *              (see: https://arbiscan.io/address/0xdce2810fc24d8ec8a6d2d749e1248e3f0ba97257#code)
  *          RockX Team - this version, structure and code optimized, role-based access-control
  */
-contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable{
+contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable, PausableUpgradeable{
     bytes32 public constant AUTHORIZED_OPERATOR = keccak256("AUTHORIZED_OPERATOR_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
@@ -116,6 +117,7 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
     }
 
     function initialize(address _votingEscrow) initializer public {
+        __Pausable_init();
         __AccessControl_init();
         __ReentrancyGuard_init();
 
@@ -278,7 +280,6 @@ contract GaugeController is AccessControlUpgradeable, ReentrancyGuardUpgradeable
      */
     function voteForGaugeWeight(address _gAddr, uint256 _userWeight)
         external
-        whenNotPaused
         nonReentrant
     {
         require(

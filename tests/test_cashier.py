@@ -19,7 +19,7 @@ def test_distributeRewards(fn_isolation, setup_contracts, owner, approved_accoun
     current_week = gauge_controller.timeTotal()
 
     scenarios = [
-        # Scenario 1: Rewards can't be distributed while the contract is paused.
+        # Scenario 1: No action since rewards can be distributed during contract pause
         {"RevertMsg": "Pausable: paused", "RewardsDistributed": 0, "NextRewardTime": 0},
 
         # Scenario 2: Rewards will not be distributed if the given gauge's relative weight is zero.
@@ -41,12 +41,7 @@ def test_distributeRewards(fn_isolation, setup_contracts, owner, approved_accoun
     for s in scenarios:
         rvt_msg = s['RevertMsg']
         if rvt_msg == "Pausable: paused":
-            cashier.pause({"from": owner})
-            assert cashier.paused()
-            with brownie.reverts(rvt_msg):
-                cashier.distributeRewards(penpie_adapter, {'from': oracle})
-            cashier.unpause({"from": owner})
-            assert not cashier.paused()
+            continue # this scenario is no longer valid
         elif rvt_msg == "Invalid reward distribution":
             with brownie.reverts(rvt_msg):
                 cashier.distributeRewards(penpie_adapter, {'from': oracle})

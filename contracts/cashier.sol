@@ -92,7 +92,7 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
      * @notice Function to send rewards and update the reward rates for a gauge.
      * @param _gAddr Address of the gauge
      */
-    function distributeRewards(address _gAddr) external nonReentrant whenNotPaused {
+    function distributeRewards(address _gAddr) external nonReentrant {
         _distributeRewards(_gAddr);
     }
 
