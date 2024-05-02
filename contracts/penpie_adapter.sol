@@ -120,5 +120,4 @@ contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable
      */
 
     event RewardsDistributed(address pendleMarket, uint256 _pid, address rewardToken, uint256 amount);
-    event ResetAllowanceForBribeManager(uint256 ts);
 }
