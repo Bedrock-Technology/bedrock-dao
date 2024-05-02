@@ -96,7 +96,7 @@ contract BribeManager is Initializable, PausableUpgradeable, OwnableUpgradeable,
     }
 
     
-    function addBribeERC20(uint256 _batch, uint256 _pid, address _token, uint256 _amount) external nonReentrant whenNotPaused {
+    function addBribeERC20(uint256 _batch, uint256 _pid, address _token, uint256 _amount, bool _forPreviousEpoch) external nonReentrant whenNotPaused {
         _addBribeERC20(_batch, _pid, _token, _amount);
     }
 
