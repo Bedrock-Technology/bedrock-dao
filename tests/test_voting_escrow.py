@@ -386,22 +386,12 @@ def test_withdraw(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     with brownie.reverts("Must have something to withdraw"):
         ve.withdraw({"from": users[1]})
 
-    # Scenario 2: Cannot withdraw while the contract is paused.
-    ve.pause({"from": owner})
-    assert ve.paused()
-
-    with brownie.reverts("Pausable: paused"):
-        ve.withdraw({"from": users[0]})
-
-    ve.unpause({"from": owner})
-    assert not ve.paused()
-
-    # Scenario 3: Cannot withdraw before lock expiration
+    # Scenario 2: Cannot withdraw before lock expiration
     with brownie.reverts("The lock didn't expire"):
         ve.withdraw({"from": users[0]})
 
-    # Scenario 4: After withdrawal, the balance will change accordingly,
-    # and the historical data point should be updated.
+    # Scenario 3: After withdrawal, the balance will change accordingly,
+    # and the historical data point should be updated.    
     chain.sleep(weeks_in_lock*week + week)
     tx = ve.withdraw({"from": users[0]})
     assert "Unlocked" in tx.events
@@ -438,6 +428,22 @@ def test_withdraw(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     assert ve.totalSupply(get_week()) == 0
     assert ve.totalSupply(chain.height) == 0
 
+    # # Scenario 2: Can withdraw even when contract is paused and lock is expired
+    token.approve(ve, amount, {"from": users[0]})
+    lock_end = get_week(weeks_in_lock+1)
+    
+    ve.createLock(amount, lock_end, {"from": users[0]})
+    
+    ve.pause({"from": owner})
+    assert ve.paused()
+
+    chain.sleep(weeks_in_lock*week + week)
+    tx = ve.withdraw({"from": users[0]})
+    assert "Unlocked" in tx.events
+    assert token.balanceOf(users[0]) == amount
+
+    ve.unpause({"from": owner})
+    assert not ve.paused()
 
 def test_balanceOf(fn_isolation, setup_contracts, owner, users, daysInSeconds):
     token, ve = setup_contracts[0], setup_contracts[1]
@@ -593,7 +599,7 @@ def test_balanceOfAt(fn_isolation, setup_contracts, owner, users, daysInSeconds,
     assert height3_pt_blk == height0 + int((height3_pt_ts - initial_last_pt_ts) * block_slope / 1e18)
     assert height3_pt_blk == height0 + 3
 
-    for i in range(weeks_in_lock + 1):
+    for i in range(weeks_in_lock+1):
         block_number = height0 + i + 1
         assert ve.balanceOfAt(users[0], block_number) == powers[i]
 
