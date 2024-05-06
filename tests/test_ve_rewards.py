@@ -22,8 +22,8 @@ def test_claim(fn_isolation, setup_contracts, owner, floorToWeek, daysInSeconds)
         {"Revert": True, "RevertMsg": "Pausable: paused", "Restake": False, "Event": "", "UserLastSettledWeek": week0,
          "BRTBalanceOfVotingEscrow": 0, "BRTBalanceOfVeRewards": 0, "BRTBalanceOfUser": 0},
 
-        # Scenario 1 (Week 1): No pending profits. Executing a claim does not cause a change in contract status.
-        {"Revert": False, "RevertMsg": "", "Restake": False, "Event": "", "UserLastSettledWeek": 0,
+        # Scenario 1 (Week 1): No pending profits. Executing a claim updates the last settlement week.
+        {"Revert": False, "RevertMsg": "", "Restake": False, "Event": "", "UserLastSettledWeek": week1,
          "BRTBalanceOfVotingEscrow": amount, "BRTBalanceOfVeRewards": amount, "BRTBalanceOfUser": 0},
 
         # Scenario 2 (Week 2): Profits pending were reinvested in the existing lock.
