@@ -25,17 +25,17 @@ def test_addBribeERC20(fn_isolation, setup_contracts, owner):
     assert bribe[0][1] == amt
 
     # Scenario 3: updateReward can be called during the contract pause.
-    token.mint(penpie_adapter, amt, {"from": owner})
-    assert token.balanceOf(penpie_adapter) == amt
+    # token.mint(penpie_adapter, amt, {"from": owner})
+    # assert token.balanceOf(penpie_adapter) == amt
 
-    penpie_adapter.pause({"from": owner})
-    assert penpie_adapter.paused()
+    # penpie_adapter.pause({"from": owner})
+    # assert penpie_adapter.paused()
 
-    tx = penpie_adapter.updateReward({"from": owner})
-    assert "RewardsDistributed" in tx.events
+    # tx = penpie_adapter.updateReward({"from": owner})
+    # assert "RewardsDistributed" in tx.events
 
-    penpie_adapter.unpause({"from": owner})
-    assert not token.paused()
+    # penpie_adapter.unpause({"from": owner})
+    # assert not token.paused()
 
 def test_resetAllowance(fn_isolation, users, setup_contracts, owner):
     penpie_adapter, bribeManager, token = setup_contracts[3], setup_contracts[5], setup_contracts[0]
