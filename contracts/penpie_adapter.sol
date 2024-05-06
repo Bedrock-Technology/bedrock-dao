@@ -78,18 +78,7 @@ contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable
      * @dev updateReward
      */
     function updateReward() external {  _updateReward(); }
-
-    /**
-     * @dev resetAllowance()
-     */
-    function resetAllowance() external onlyOwner {
-        uint256 currentAllowance = IERC20(rewardToken).allowance(address(this), bribeManager);
-        if (currentAllowance != 0) {
-            IERC20(rewardToken).safeApprove(bribeManager, 0);
-            emit ResetAllowanceForBribeManager(block.timestamp);
-        }
-    }
-
+    
     /**
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      *
@@ -115,7 +104,7 @@ contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable
         // transfer bribe
         uint256 currentAllowance = IERC20(rewardToken).allowance(address(this), bribeManager);
         if (currentAllowance < balance) {
-            IERC20(rewardToken).safeApprove(bribeManager, type(uint256).max);
+            IERC20(rewardToken).safeApprove(bribeManager, balance);
         }
         IBribeManager(bribeManager).addBribeERC20(1, _pid, rewardToken, balance, false);        
         
@@ -131,5 +120,4 @@ contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable
      */
 
     event RewardsDistributed(address pendleMarket, uint256 _pid, address rewardToken, uint256 amount);
-    event ResetAllowanceForBribeManager(uint256 ts);
 }
