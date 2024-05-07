@@ -121,6 +121,8 @@ contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyG
         __AccessControl_init();
         __ReentrancyGuard_init();
 
+        require(_votingEscrow != address(0x0), "_votingEscrow nil");
+
         votingEscrow = _votingEscrow;
         timeTotal = _floorToWeek(block.timestamp);
 
