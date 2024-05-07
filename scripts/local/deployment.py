@@ -88,7 +88,7 @@ def main():
         bedrock_dao.address,
         {'from': owner})
     gauge_controller_transparent.initialize(voting_escrow_transparent.address, {'from': owner})
-    ve_rewards_transparent.initialize(voting_escrow_transparent.address, bedrock_dao.address, {'from': owner})
+    ve_rewards_transparent.initialize(voting_escrow_transparent.address, {'from': owner})
     cashier_transparent.initialize(
         bedrock_dao.address,
         global_week_emission,

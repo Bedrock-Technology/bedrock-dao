@@ -57,7 +57,7 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
             {'from': deployer}, publish_source=shouldPublishSource)
 
     transparent_ve_rewards = Contract.from_abi("VeRewards", ve_rewards_proxy.address, VeRewards.abi)
-    transparent_ve_rewards.initialize(transparent_ve, token_contract, {'from': owner})
+    transparent_ve_rewards.initialize(transparent_ve, {'from': owner})
 
     # assign REWARDS_MANAGER_ROLE to rewards contract
     transparent_ve.assignRewardsManager(transparent_ve_rewards, {'from': owner})

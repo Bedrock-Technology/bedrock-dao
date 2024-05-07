@@ -53,18 +53,14 @@ contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, Re
     }
 
     function initialize(
-        address _votingEscrow, 
-        address _rewardToken
+        address _votingEscrow
     ) initializer public {
         __Pausable_init();
         __Ownable_init();
         __ReentrancyGuard_init();
 
-        require(_votingEscrow != address(0x0), "_votingEscrow nil");
-        require(_rewardToken != address(0x0), "_rewardToken nil");
-
+        rewardToken = IVotingEscrow(_votingEscrow).assetToken();
         votingEscrow = _votingEscrow;
-        rewardToken = _rewardToken;
 
         genesisWeek = _getWeek(block.timestamp);
         lastProfitsUpdate = genesisWeek;
