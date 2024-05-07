@@ -1,4 +1,5 @@
 from brownie import *
+from web3 import Web3
 from brownie.network import priority_fee
 from pathlib import Path
 
@@ -60,7 +61,9 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     transparent_ve_rewards.initialize(transparent_ve, {'from': owner})
 
     # assign REWARDS_MANAGER_ROLE to rewards contract
-    transparent_ve.assignRewardsManager(transparent_ve_rewards, {'from': owner})
+    w3 = Web3(Web3.HTTPProvider('http://localhost:8545'))
+    rewards_manager_role = w3.keccak(text='REWARDS_MANAGER_ROLE')
+    transparent_ve.grantRole(rewards_manager_role, transparent_ve_rewards, {'from': owner})
 
     print("TOKEN ADDRESS:", token_contract)
     print("VE ADDRESS:",transparent_ve) 

@@ -142,13 +142,6 @@ contract VotingEscrow is Initializable, PausableUpgradeable, AccessControlUpgrad
     }
 
     /**
-     * @dev assign rewards manager role to rewards contract
-     */
-    function assignRewardsManager(address rewardsContract) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(REWARDS_MANAGER_ROLE, rewardsContract);
-    }
-
-    /**
      * @notice Public function to trigger global checkpoint
      */
     function checkpoint() external {
