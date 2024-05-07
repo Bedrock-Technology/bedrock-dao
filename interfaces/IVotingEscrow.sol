@@ -22,7 +22,7 @@ interface IVotingEscrow {
     ///      locked
     /// @param _addr Address of the user
     /// @param _value Amount of tokens to deposit
-    function depositFor(address _addr, uint128 _value) external;
+    function depositFor(address _addr, uint256 _value) external;
 
     /// @notice Creates a new lock
     /// @param _value Total units of token to lock
