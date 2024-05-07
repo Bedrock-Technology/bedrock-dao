@@ -16,7 +16,7 @@ pragma solidity ^0.8.9;
 
 import "interfaces/IVotingEscrow.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -25,8 +25,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
   * @title Rockx Voting-escrow Rewards Contract
   * @author RockX Team
   */
-contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
+contract VeRewards is Initializable, AccessControlUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
+
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     uint256 public constant WEEK = 604800;
     uint256 public constant MAXWEEKS = 50; // max number of weeks a user can claim rewards in a single transaction
@@ -56,8 +58,11 @@ contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, Re
         address _votingEscrow
     ) initializer public {
         __Pausable_init();
-        __Ownable_init();
+        __AccessControl_init();
         __ReentrancyGuard_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(PAUSER_ROLE, msg.sender);
 
         rewardToken = IVotingEscrow(_votingEscrow).assetToken();
         votingEscrow = _votingEscrow;
@@ -66,11 +71,11 @@ contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, Re
         lastProfitsUpdate = genesisWeek;
     }
 
-    function pause() public onlyOwner {
+    function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() public onlyOwner {
+    function unpause() public onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 

@@ -21,7 +21,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
@@ -29,9 +29,13 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
  *  @notice This contract manages the reward distribution to different LP's based on gauges weight, weekly.
  *  @author RockX Team(AGPL)
  */
-contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract Cashier is Initializable, PausableUpgradeable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
     using Address for address;
+
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant PROTOCOL_MANAGER_ROLE = keccak256("PROTOCOL_MANAGER_ROLE");
+
     uint256 public constant WEEK = 86400*7;
     uint256 public constant MULTIPLIER = 1e18;
 
@@ -55,8 +59,12 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
         address _approvedAccount
     ) initializer public {
         __Pausable_init();
-        __Ownable_init();
+        __AccessControl_init();
         __ReentrancyGuard_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(PAUSER_ROLE, msg.sender);
+        _grantRole(PROTOCOL_MANAGER_ROLE, msg.sender);
 
         rewardToken = _rewardToken;
         gaugeController = _gaugeController;
@@ -71,11 +79,11 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
      *
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      */
-    function pause() public onlyOwner {
+    function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() public onlyOwner {
+    function unpause() public onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
@@ -83,7 +91,7 @@ contract Cashier is Initializable, PausableUpgradeable, OwnableUpgradeable, Reen
      * @notice Function set the global emission rate per week
      * @param _newWeekEmission New weekly emission rate
      */
-    function setGlobalEmissionRate(uint256 _newWeekEmission) external onlyOwner {
+    function setGlobalEmissionRate(uint256 _newWeekEmission) external onlyRole(PROTOCOL_MANAGER_ROLE)  {
         globalWeekEmission = _newWeekEmission;
         emit GlobalEmissionRateSet(_newWeekEmission);
     }
