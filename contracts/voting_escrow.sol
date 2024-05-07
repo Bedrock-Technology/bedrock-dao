@@ -165,7 +165,7 @@ contract VotingEscrow is Initializable, PausableUpgradeable, AccessControlUpgrad
      * @param _addr Address of the user
      * @param _value Amount of tokens to deposit
      */
-    function depositFor(address _addr, uint128 _value)
+    function depositFor(address _addr, uint256 _value)
         external
         nonReentrant
         whenNotPaused
