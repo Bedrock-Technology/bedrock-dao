@@ -149,7 +149,7 @@ contract Cashier is Initializable, PausableUpgradeable, AccessControlUpgradeable
         );
 
         // schedule next week's transfer
-        nextRewardTime[_gAddr] = _getWeek(block.timestamp + WEEK);
+        nextRewardTime[_gAddr] = _floorToWeek(block.timestamp + WEEK);
 
         // Relative weights are always calculated based on the current cycle.
         uint256 gaugeRelativeWt = IGaugeController(gaugeController)
@@ -171,11 +171,11 @@ contract Cashier is Initializable, PausableUpgradeable, AccessControlUpgradeable
     }
 
     /**
-     * @notice Get the based on the ts.
+     * @notice Floors a timestamp to the nearest weekly increment.
      * @param _ts arbitrary time stamp.
      * @return returns the 00:00 am UTC for THU after _ts
      */
-    function _getWeek(uint256 _ts) private pure returns (uint256) {
+    function _floorToWeek(uint256 _ts) private pure returns (uint256) {
         return (_ts / WEEK) * WEEK;
     }
 

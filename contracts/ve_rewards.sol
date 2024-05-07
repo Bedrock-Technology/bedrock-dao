@@ -67,7 +67,7 @@ contract VeRewards is Initializable, AccessControlUpgradeable, PausableUpgradeab
         rewardToken = IVotingEscrow(_votingEscrow).assetToken();
         votingEscrow = _votingEscrow;
 
-        genesisWeek = _getWeek(block.timestamp);
+        genesisWeek = _floorToWeek(block.timestamp);
         lastProfitsUpdate = genesisWeek;
     }
 
@@ -158,7 +158,7 @@ contract VeRewards is Initializable, AccessControlUpgradeable, PausableUpgradeab
         // lookup user's first ve deposit timestamp
         (,,uint256 ts) = IVotingEscrow(votingEscrow).getFirstUserPoint(account);
         if (settleToWeek < ts) {
-            settleToWeek = _getWeek(ts);
+            settleToWeek = _floorToWeek(ts);
         }
 
         // loop throught weeks to accumulate profits
@@ -194,7 +194,7 @@ contract VeRewards is Initializable, AccessControlUpgradeable, PausableUpgradeab
             accountedBalance = balance; // balance sync
 
             // rewards received this week is scheduled to release in next week.
-            uint256 week = _getWeek(block.timestamp+WEEK);
+            uint256 week = _floorToWeek(block.timestamp+WEEK);
             weeklyProfits[week] += profits;
             lastProfitsUpdate = week;
 
@@ -204,11 +204,11 @@ contract VeRewards is Initializable, AccessControlUpgradeable, PausableUpgradeab
     }
 
     /**
-     *  @notice Get the based on the ts.
+     *  @notice Floors a timestamp to the nearest weekly increment.
      *  @param _ts arbitrary time stamp.
      *  @return returns the 00:00 am UTC for THU after _ts
      */
-    function _getWeek(uint256 _ts) private pure returns (uint256) {
+    function _floorToWeek(uint256 _ts) private pure returns (uint256) {
         return (_ts / WEEK) * WEEK;
     }
 
