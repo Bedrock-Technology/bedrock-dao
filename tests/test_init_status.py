@@ -18,10 +18,11 @@ def test_init_status(fn_isolation, setup_contracts, w3, owner, approved_account,
     minter_role = w3.keccak(text='MINTER_ROLE')
     rewards_manager_role = w3.keccak(text='REWARDS_MANAGER_ROLE')
     authorized_operator_role = w3.keccak(text='AUTHORIZED_OPERATOR_ROLE')
+    protocol_manager_role = w3.keccak(text='PROTOCOL_MANAGER_ROLE')
     default_admin_role = w3.toBytes(hexstr="0x00")
 
     # Check roles
-    contracts_with_pauser = [token, voting_escrow]
+    contracts_with_pauser = [token, voting_escrow, ve_rewards, penpie_adapter1, penpie_adapter2, casher]
     for c in contracts_with_pauser:
         c.hasRole(pauser_role, owner)
         c.hasRole(default_admin_role, owner)
@@ -29,6 +30,7 @@ def test_init_status(fn_isolation, setup_contracts, w3, owner, approved_account,
     token.hasRole(minter_role, owner)
     voting_escrow.hasRole(rewards_manager_role, ve_rewards)
     gauge_controller.hasRole(authorized_operator_role, ve_rewards)
+    casher.hasRole(protocol_manager_role, owner)
 
     # Check constant and status variables
     assert casher.WEEK() == 86400*7

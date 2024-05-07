@@ -121,8 +121,10 @@ contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyG
         __AccessControl_init();
         __ReentrancyGuard_init();
 
+        require(_votingEscrow != address(0x0), "_votingEscrow nil");
+
         votingEscrow = _votingEscrow;
-        timeTotal = block.timestamp / WEEK * WEEK;
+        timeTotal = _floorToWeek(block.timestamp);
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(AUTHORIZED_OPERATOR, msg.sender);
@@ -204,7 +206,7 @@ contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyG
         require(gaugeData[_gAddr].gType == 0, "Gauge already registered");  ///  @dev can't add the same gauge twice
         require(nGauges < MAX_NUM_GAUGES, "Can't add more gauges");
 
-        uint256 nextTime = _getWeek(block.timestamp + WEEK);
+        uint256 nextTime = _floorToWeek(block.timestamp + WEEK);
 
         if (_weight > 0) {
             uint256 typeWeight = _getTypeWeight(_gType);
@@ -294,7 +296,7 @@ contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyG
 
         uint256 lockEnd = IVotingEscrow(votingEscrow).lockEnd(msg.sender);
 
-        uint256 nextTime = _getWeek(block.timestamp + WEEK);
+        uint256 nextTime = _floorToWeek(block.timestamp + WEEK);
 
         require(lockEnd > nextTime, "Lock expires before next cycle");
 
@@ -724,7 +726,7 @@ contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyG
         uint256 oldWeight = _getTypeWeight(_gType);
         uint256 oldSum = _getSum(_gType);
         uint256 totalWeight = _getTotal();
-        uint256 nextTime = _getWeek(block.timestamp + WEEK);
+        uint256 nextTime = _floorToWeek(block.timestamp + WEEK);
 
         totalWeight = totalWeight + (oldSum * _weight) - (oldSum * oldWeight);
         totalWtAtTime[nextTime] = totalWeight;
@@ -747,7 +749,7 @@ contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyG
         uint256 typeWeight = _getTypeWeight(gType);
         uint256 oldSum = _getSum(gType);
         uint256 oldTotalWeight = _getTotal();
-        uint256 nextTime = _getWeek(block.timestamp + WEEK);
+        uint256 nextTime = _floorToWeek(block.timestamp + WEEK);
 
         timeGaugeBaseWt[_gAddr] = nextTime;
         gaugeBaseWtAtTime[_gAddr][nextTime] = _newW0;
@@ -870,7 +872,7 @@ contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyG
         if (t == 0) return 0;
 
         // Gauge wt is check-pointed for the timestamp
-        _time = _getWeek(_time);
+        _time = _floorToWeek(_time);
         if (_time <= t) {
             return gaugePoints[_gAddr][_time].bias;
         }
@@ -908,7 +910,7 @@ contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyG
     returns (uint256)
     {
         uint256 t = timeGaugeBaseWt[_gAddr];
-        _time = _getWeek(_time);
+        _time = _floorToWeek(_time);
 
         // Gauge base wt is check-pointed for the timestamp
         if (_time <= t) {
@@ -936,7 +938,7 @@ contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyG
         if (t == 0) return 0;
 
         // Type wt is check-pointed for the timestamp
-        _time = _getWeek(_time);
+        _time = _floorToWeek(_time);
         if (_time <= t) {
             return typeWtAtTime[_gType][_time];
         }
@@ -1024,11 +1026,11 @@ contract GaugeController is Initializable, AccessControlUpgradeable, ReentrancyG
     }
 
     /**
-     *  @notice Get the based on the ts.
+     *  @notice Floors a timestamp to the nearest weekly increment.
      *  @param _ts arbitrary time stamp.
      *  @return returns the 00:00 am UTC for THU after _ts
      */
-    function _getWeek(uint256 _ts) private pure returns (uint256) {
+    function _floorToWeek(uint256 _ts) private pure returns (uint256) {
         return (_ts / WEEK) * WEEK;
     }
 

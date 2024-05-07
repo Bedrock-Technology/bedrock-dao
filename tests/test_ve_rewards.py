@@ -2,7 +2,7 @@ from brownie import accounts, chain
 import brownie
 
 
-def test_claim(fn_isolation, setup_contracts, owner, floorToWeek, daysInSeconds):
+def test_claim(fn_isolation, w3, setup_contracts, owner, floorToWeek, daysInSeconds):
     token, voting_escrow, ve_rewards = setup_contracts[0], setup_contracts[1], setup_contracts[6]
     amount = 100e18
     lp = accounts[2]
@@ -40,7 +40,8 @@ def test_claim(fn_isolation, setup_contracts, owner, floorToWeek, daysInSeconds)
     token.approve(voting_escrow, amount, {"from": lp})
     voting_escrow.createLock(amount, lock_end, {"from": lp})
 
-    voting_escrow.assignRewardsManager(ve_rewards, {'from': owner})
+    rewards_manager_role = w3.keccak(text='REWARDS_MANAGER_ROLE')
+    voting_escrow.grantRole(rewards_manager_role, ve_rewards, {'from': owner})
 
     for s in scenarios:
         if current_week != week0:

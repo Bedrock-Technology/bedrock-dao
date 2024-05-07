@@ -16,7 +16,7 @@ pragma solidity ^0.8.9;
 
 import "interfaces/IVotingEscrow.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -25,8 +25,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
   * @title Rockx Voting-escrow Rewards Contract
   * @author RockX Team
   */
-contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
+contract VeRewards is Initializable, AccessControlUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
+
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     uint256 public constant WEEK = 604800;
     uint256 public constant MAXWEEKS = 50; // max number of weeks a user can claim rewards in a single transaction
@@ -53,28 +55,27 @@ contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, Re
     }
 
     function initialize(
-        address _votingEscrow, 
-        address _rewardToken
+        address _votingEscrow
     ) initializer public {
         __Pausable_init();
-        __Ownable_init();
+        __AccessControl_init();
         __ReentrancyGuard_init();
 
-        require(_votingEscrow != address(0x0), "_votingEscrow nil");
-        require(_rewardToken != address(0x0), "_rewardToken nil");
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(PAUSER_ROLE, msg.sender);
 
+        rewardToken = IVotingEscrow(_votingEscrow).assetToken();
         votingEscrow = _votingEscrow;
-        rewardToken = _rewardToken;
 
-        genesisWeek = _getWeek(block.timestamp);
+        genesisWeek = _floorToWeek(block.timestamp);
         lastProfitsUpdate = genesisWeek;
     }
 
-    function pause() public onlyOwner {
+    function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() public onlyOwner {
+    function unpause() public onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
@@ -157,7 +158,7 @@ contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, Re
         // lookup user's first ve deposit timestamp
         (,,uint256 ts) = IVotingEscrow(votingEscrow).getFirstUserPoint(account);
         if (settleToWeek < ts) {
-            settleToWeek = _getWeek(ts);
+            settleToWeek = _floorToWeek(ts);
         }
 
         // loop throught weeks to accumulate profits
@@ -193,7 +194,7 @@ contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, Re
             accountedBalance = balance; // balance sync
 
             // rewards received this week is scheduled to release in next week.
-            uint256 week = _getWeek(block.timestamp+WEEK);
+            uint256 week = _floorToWeek(block.timestamp+WEEK);
             weeklyProfits[week] += profits;
             lastProfitsUpdate = week;
 
@@ -203,11 +204,11 @@ contract VeRewards is Initializable, OwnableUpgradeable, PausableUpgradeable, Re
     }
 
     /**
-     *  @notice Get the based on the ts.
+     *  @notice Floors a timestamp to the nearest weekly increment.
      *  @param _ts arbitrary time stamp.
      *  @return returns the 00:00 am UTC for THU after _ts
      */
-    function _getWeek(uint256 _ts) private pure returns (uint256) {
+    function _floorToWeek(uint256 _ts) private pure returns (uint256) {
         return (_ts / WEEK) * WEEK;
     }
 

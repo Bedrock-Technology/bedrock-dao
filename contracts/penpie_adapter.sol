@@ -18,7 +18,7 @@ import "interfaces/IBribeManager.sol";
 import "interfaces/IRewardReceiver.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
@@ -26,8 +26,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
   * @title Rockx Bribe Adapter
   * @author RockX Team
   */
-contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable {
+contract PenpieAdapter is Initializable, AccessControlUpgradeable, PausableUpgradeable {
     using SafeERC20 for IERC20;
+
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     address public pendleMarket; // target pendle market which will receive rewards from this contract
     address public rewardToken; // the reward token to be distributed as bribe
@@ -47,7 +49,10 @@ contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable
 
     function initialize(address _pendleMarket, address _rewardToken, address _bribeManager) initializer public {
         __Pausable_init();
-        __Ownable_init();
+        __AccessControl_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(PAUSER_ROLE, msg.sender);
 
         require(_pendleMarket != address(0x0), "_pendleMarket nil");
         require(_rewardToken != address(0x0), "_rewardToken nil");
@@ -58,11 +63,11 @@ contract PenpieAdapter is Initializable, OwnableUpgradeable, PausableUpgradeable
         rewardToken = _rewardToken;
     }
 
-    function pause() public onlyOwner {
+    function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() public onlyOwner {
+    function unpause() public onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
