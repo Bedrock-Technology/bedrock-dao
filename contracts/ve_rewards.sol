@@ -102,7 +102,7 @@ contract VeRewards is Initializable, AccessControlUpgradeable, PausableUpgradeab
         
         if (restake) {
             IERC20(rewardToken).safeApprove(votingEscrow, profits);
-            IVotingEscrow(votingEscrow).depositFor(msg.sender, uint128(profits));
+            IVotingEscrow(votingEscrow).depositFor(msg.sender, profits);
         } else {
             // transfer profits to user
             IERC20(rewardToken).safeTransfer(msg.sender, profits);
