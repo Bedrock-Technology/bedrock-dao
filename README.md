@@ -20,3 +20,7 @@
 | Gauge 5 (PenpieAdapter) | 0x32f9b7c97B97a404487939A6011009322d3c1809 |
 | Gauge 6 (PenpieAdapter) | 0x8c708E6E7Eaa173dC6410d4AA45faCfE600Fb349 |
 | Bribe Manager (mock) | 0x39889AA0e56AB15E17bB4AEeCa8f2809cDC11006 |
+
+### Audit Report
+The contracts have been audited by [BlockSec](https://blocksec.com/). 
+For security report details, please refer to [blocksec_bedrockdao_v1.0-signed](https://github.com/Bedrock-Technology/bedrock-dao/blob/main/docs/blocksec_bedrockdao_v1.0-signed.pdf).
