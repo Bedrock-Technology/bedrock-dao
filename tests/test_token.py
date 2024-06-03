@@ -32,7 +32,7 @@ def test_mint(fn_isolation, setup_contracts, owner, zero_address):
     assert token.balanceOf(lp) == amount
     assert token.totalSupply() == amount
     assert token.name() == "Bedrock DAO"
-    assert token.symbol() == "BRT"
+    assert token.symbol() == "BR"
     assert token.decimals() == 18
 
 
@@ -141,13 +141,13 @@ def test_batchTransfer(fn_isolation, users, setup_contracts, owner):
     amt = 200
 
     # Scenario 1: At least one recipient is provided.
-    with brownie .reverts("BRT: least one recipient address"):
+    with brownie .reverts("BR: least one recipient address"):
         token.batchTransfer([], [], {'from': owner})
 
     # Scenario 2: The number of recipients must equal the number of tokens
-    with brownie .reverts("BRT: number of recipient addresses does not match the number of tokens"):
+    with brownie .reverts("BR: number of recipient addresses does not match the number of tokens"):
         token.batchTransfer([users[0], users[1]], [amt/2], {'from': owner})
-    with brownie .reverts("BRT: number of recipient addresses does not match the number of tokens"):
+    with brownie .reverts("BR: number of recipient addresses does not match the number of tokens"):
         token.batchTransfer([users[0]], [amt/2, amt/2], {'from': owner})
 
     # Scenario 3: Transfer successful and balances update accordingly

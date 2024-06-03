@@ -8,7 +8,7 @@
 #### Testnet
 | Contract | Address |
 | -------- | ------- |
-| BRT Token | 0x07881e8Ac6cAF3C3082227218E94b3D7ffE201fD |
+| BR Token | 0x07881e8Ac6cAF3C3082227218E94b3D7ffE201fD |
 | Voting Escrow | 0x19Cd39eC64d3AbbcF9A448175400cDDbA97B9f56 |
 | Rewards | 0xFEB5317b7cAA5d88929f60a5fe8481cFa9854f9e |
 | Gauge Controller | 0xa64B2dFfA8818E4A931e7B25ABDDB4CeA12777B4 |
@@ -23,4 +23,4 @@
 
 ### Audit Report
 The contracts have been audited by [BlockSec](https://blocksec.com/). 
-For security report details, please refer to [blocksec_bedrockdao_v1.0-signed](https://github.com/Bedrock-Technology/bedrock-dao/blob/main/docs/blocksec_bedrockdao_v1.0-signed.pdf).
+For security report details, please refer to [blocksec_bedrockdao_v1.1-signed](https://github.com/Bedrock-Technology/bedrock-dao/blob/main/docs/blocksec_bedrockdao_v1.1-signed.pdf).

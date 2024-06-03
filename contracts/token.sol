@@ -13,7 +13,7 @@ contract BedrockDAO is ERC20, ERC20Burnable, AccessControl, ERC20Pausable, ERC20
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     constructor(address defaultAdmin, address pauser, address minter) 
-        ERC20("Bedrock DAO", "BRT")
+        ERC20("Bedrock DAO", "BR")
         ERC20Permit("Bedrock DAO")
     {
         _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
@@ -42,8 +42,8 @@ contract BedrockDAO is ERC20, ERC20Burnable, AccessControl, ERC20Pausable, ERC20
     }
 
     function batchTransfer(address[] memory recipients, uint256[] memory amounts) public {
-        require(recipients.length > 0, "BRT: least one recipient address");
-        require(recipients.length == amounts.length, "BRT: number of recipient addresses does not match the number of tokens");
+        require(recipients.length > 0, "BR: least one recipient address");
+        require(recipients.length == amounts.length, "BR: number of recipient addresses does not match the number of tokens");
 
         for(uint256 i = 0; i < recipients.length; ++i) {
             _transfer(_msgSender(), recipients[i], amounts[i]);

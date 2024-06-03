@@ -114,7 +114,7 @@ def main():
     print("Initial Contract Status Check ......")   # TODO: Checking more status
 
     assert bedrock_dao.name() == "Bedrock DAO"
-    assert bedrock_dao.symbol() == "BRT"
+    assert bedrock_dao.symbol() == "BR"
 
     assert voting_escrow_transparent.name() == bedrock_dao.name()
     assert voting_escrow_transparent.symbol() == bedrock_dao.symbol()
