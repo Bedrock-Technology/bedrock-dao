@@ -39,7 +39,7 @@ def main():
     transparent_staking = Contract.from_abi("LPStaking", staking_proxy.address, LPStaking.abi)
     transparent_staking.initialize(transparent_lp_token, token_contract, {'from': owner})
 
-    print("BRT ADDRESS:", token_contract)
+    print("BR ADDRESS:", token_contract)
     print("LP TOKEN ADDRESS:", lp_token_contract)
     print("LP STAKING ADDRESS:", transparent_staking)
 

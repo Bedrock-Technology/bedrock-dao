@@ -31,7 +31,7 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     print(f'contract owner account: {owner.address}\n')
     
     """
-    Testnet BRT Contract
+    Testnet BR Contract
     """
     token_contract = BedrockDAO.at(dep_contracts[dep_network]["token"])
     

@@ -20,19 +20,19 @@ def test_claim(fn_isolation, w3, setup_contracts, owner, floorToWeek, daysInSeco
     scenarios = [
         # Scenario 0 (Week 0): No action
         {"Revert": False, "RevertMsg": "", "Restake": False, "Event": "", "UserLastSettledWeek": 0,
-         "BRTBalanceOfVotingEscrow": amount, "BRTBalanceOfVeRewards": amount, "BRTBalanceOfUser": 0},
+         "BRBalanceOfVotingEscrow": amount, "BRBalanceOfVeRewards": amount, "BRBalanceOfUser": 0},
 
         # Scenario 1 (Week 1): No pending profits. Executing a claim updates the last settlement week.
         {"Revert": False, "RevertMsg": "", "Restake": False, "Event": "", "UserLastSettledWeek": week1,
-         "BRTBalanceOfVotingEscrow": amount, "BRTBalanceOfVeRewards": amount, "BRTBalanceOfUser": 0},
+         "BRBalanceOfVotingEscrow": amount, "BRBalanceOfVeRewards": amount, "BRBalanceOfUser": 0},
 
         # Scenario 2 (Week 2): Profits pending were reinvested in the existing lock.
         {"Revert": False, "RevertMsg": "", "Restake": True, "Event": "Locked", "UserLastSettledWeek": week2,
-         "BRTBalanceOfVotingEscrow": 2*amount, "BRTBalanceOfVeRewards": amount, "BRTBalanceOfUser": 0},
+         "BRBalanceOfVotingEscrow": 2*amount, "BRBalanceOfVeRewards": amount, "BRBalanceOfUser": 0},
 
         # Scenario 3 (Week 3): Pending profits credited to user's account
         {"Revert": False, "RevertMsg": "", "Restake": False, "Event": "Claimed", "UserLastSettledWeek": week3,
-         "BRTBalanceOfVotingEscrow": 2*amount, "BRTBalanceOfVeRewards": amount, "BRTBalanceOfUser": amount},
+         "BRBalanceOfVotingEscrow": 2*amount, "BRBalanceOfVeRewards": amount, "BRBalanceOfUser": amount},
     ]
 
     lock_end = floorToWeek(chain.time()) + 5 * week
@@ -55,9 +55,9 @@ def test_claim(fn_isolation, w3, setup_contracts, owner, floorToWeek, daysInSeco
             if not s['Event'] == "":
                 assert s['Event'] in tx.events
             assert ve_rewards.userLastSettledWeek(lp) == s['UserLastSettledWeek']
-            assert token.balanceOf(voting_escrow) == s['BRTBalanceOfVotingEscrow']
-            assert token.balanceOf(ve_rewards) == s['BRTBalanceOfVeRewards']
-            assert token.balanceOf(lp) == s['BRTBalanceOfUser']
+            assert token.balanceOf(voting_escrow) == s['BRBalanceOfVotingEscrow']
+            assert token.balanceOf(ve_rewards) == s['BRBalanceOfVeRewards']
+            assert token.balanceOf(lp) == s['BRBalanceOfUser']
 
         # Fast forward block time by one week
         chain.sleep(week)

@@ -44,7 +44,7 @@ interface IVotingEscrow {
     /// @notice Withdraws all the senders tokens, providing lockup is over
     function withdraw() external;
 
-    /// @notice Returns the address of the BRT token
+    /// @notice Returns the address of the BR token
     function assetToken() external view returns (address);
 
     /// @notice Get current user voting power

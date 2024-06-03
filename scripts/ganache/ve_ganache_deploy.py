@@ -25,7 +25,7 @@ def main():
             {'from': deployer})
 
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
-    transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_contract, {'from': owner})
+    transparent_ve.initialize( "voting-escrow BR", "veBR", token_contract, {'from': owner})
 
     print("VE ADDRESS:", transparent_ve)
 

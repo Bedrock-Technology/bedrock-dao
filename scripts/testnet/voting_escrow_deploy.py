@@ -30,7 +30,7 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
     print(f'contract deployer account: {deployer.address}\n')
     
     """
-    Testnet BRT Contract
+    Testnet BR Contract
     """
     token_contract = BedrockDAO.at(dep_contracts[dep_network]["token"])
 
@@ -45,7 +45,7 @@ def main(owner="holesky-owner", deployer="holesky-deployer", dep_network="holesk
             {'from': deployer}, publish_source=shouldPublishSource)
 
     transparent_ve = Contract.from_abi("VotingEscrow", ve_proxy.address, VotingEscrow.abi)
-    transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_contract, {'from': owner})
+    transparent_ve.initialize( "voting-escrow BR", "veBR", token_contract, {'from': owner})
 
     """
     Deploy VE Rewards contract

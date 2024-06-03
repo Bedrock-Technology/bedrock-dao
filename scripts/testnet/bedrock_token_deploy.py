@@ -21,4 +21,4 @@ def main(owner="holesky-owner", deployer="holesky-deployer"):
     """
     token_contract = BedrockDAO.deploy(owner, owner, owner, {'from': deployer}, publish_source=shouldPublishSource)
 
-    print("BRT TOKEN ADDRESS:", token_contract.address)
+    print("BR TOKEN ADDRESS:", token_contract.address)

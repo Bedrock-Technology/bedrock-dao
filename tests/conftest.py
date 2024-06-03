@@ -105,7 +105,7 @@ def setup_contracts(proxy, owner, deployer, approved_account, global_week_emissi
     transparent_penpie_adapter1.initialize(markets[0], token_contract.address, transparent_mock_bribe_manager, {'from': owner})
     transparent_penpie_adapter2.initialize(markets[1], token_contract.address, transparent_mock_bribe_manager, {'from': owner})
 
-    transparent_ve.initialize( "voting-escrow BRT", "veBRT", token_contract.address, {'from': owner})
+    transparent_ve.initialize( "voting-escrow BR", "veBR", token_contract.address, {'from': owner})
     transparent_gauge.initialize(transparent_ve, {'from': owner})
     transparent_ve_rewards.initialize(transparent_ve, {'from': owner})
     transparent_cashier.initialize(token_contract, global_week_emission, transparent_gauge, approved_account, {'from': owner})

@@ -55,7 +55,7 @@ def test_init_status(fn_isolation, setup_contracts, w3, owner, approved_account,
         assert p.bribeManager() == bribe_manager
 
     token.name() == "Bedrock DAO"
-    token.symbol() == "BRT"
+    token.symbol() == "BR"
     token.decimals() == 18
 
     assert ve_rewards.WEEK() == 604800
